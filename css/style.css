@@ -1,0 +1,20 @@
+.main_layout
+{
+	margin-left: auto;
+	margin-right: auto;
+}
+
+canvas
+{
+	border: 1px solid black;
+}
+
+h1
+{
+	text-align:center
+}
+
+h3
+{
+	text-align:center
+}
