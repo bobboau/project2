@@ -30,6 +30,11 @@ var UI = (function(){
 			stroke_style: '#000000',
 			fill_style: '#FF0000',
 			edge_width: 1
+		},
+		hull:{
+			stroke_style: '#FFFF00',
+			fill_style: 'none',
+			edge_width: 2
 		}
 	}
 
@@ -61,21 +66,47 @@ var UI = (function(){
 		//clear what was ever there before
 		context.clearRect(0, 0, canvas.width, canvas.height);
 		
+		//draw the convex hull
+		var voronoi = Scene.getDiagram();
+		if(voronoi){
+			var voronoi_hull = voronoi.getConvexHullPoints();
+			
+			context.fillStyle = config.hull.fill_style;
+			context.lineWidth = config.hull.edge_width;
+			context.strokeStyle = config.hull.stroke_style;
+			
+			context.beginPath();
+			$.each(
+				voronoi_hull,
+				function(i, point){
+					if(i>0){
+						context.lineTo(point.e(1), point.e(2));
+					}
+					else{
+						context.moveTo(point.e(1), point.e(2));
+					}
+				}
+			);
+			context.lineTo(voronoi_hull[0].e(1), voronoi_hull[0].e(2));
+			context.stroke();
+		}
+		
+		//draw all the points
 		context.fillStyle = config.point.fill_style;
 		context.lineWidth = config.point.edge_width;
 		context.strokeStyle = config.point.stroke_style;
 				
-		//draw all the points
 		var points = Scene.getPoints();
 		$.each(
 			points,
 			function(i, point){
 				context.beginPath();
-				context.arc(point.X, point.Y, config.point.size, 0 , 2 * Math.PI, false);
+				context.arc(point.e(1), point.e(2), config.point.size, 0 , 2 * Math.PI, false);
 				context.fill();
 				context.stroke();
 			}
 		);
+		
 	}
 	
 	/******************\
