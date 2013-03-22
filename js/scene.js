@@ -20,6 +20,7 @@
 	 */
 	function reset(){
 		points = [];
+		diagram = null;
 	}
 	
 	/**
