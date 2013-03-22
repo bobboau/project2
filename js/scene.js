@@ -2,18 +2,44 @@
  *module for managing the abstract representation of the set of points and lines and everything, this is where our improtaint code lives
  */
 
- Scene = (function(){ 
+ Scene = (function(){
+	/*********************\
+	|* privte attributes *|
+	\*********************/
+	
 	/**
 	 *the defining points
 	 *@var [Vector]
 	 */
-	var points = []
+	var points = [];
 	
 	/**
 	 *the computed Voronoi diagram (or null if one hasn't been calculated yet)
 	 *@var Voronoi
 	 */
 	var diagram = null;
+	
+	/*****************************\
+	|* private utility functions *|
+	\*****************************/
+	
+	/**
+	 *checks to see if adding the given point would be ok (it won't be a degeneracy)
+	 *@param Vertex point
+	 *@return bool
+	 */
+	function isPointValid(point){
+		for(var i = 0; i<points.length; i++){
+			if(points[i].e(1) == point.e(1) || points[i].e(2) == point.e(2)){
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/******************\
+	|* public methods *|
+	\******************/
 	
 	/**
 	 *clears the scene
@@ -29,7 +55,11 @@
 	 *@param number y
 	 */
 	function addPoint(x, y){
-		points.push($V([x,y,0]));
+		var new_point = $V([x,y,0]);
+		while(!isPointValid(new_point)){
+			new_point = $V([x+Math.random(),y+Math.random(),0]);
+		}
+		points.push(new_point);
 	}
 	
 	/**
