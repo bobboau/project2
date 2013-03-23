@@ -22,6 +22,16 @@ function Voronoi(_points, _sorted){
 	 */
 	var convex_hull = [];
 	
+	/*****************\
+	|* inner classes *|
+	\*****************/
+	
+	/**
+	 *a face of a Voronoi region, this is effectivly a linked list of lines (edges)
+	 *though it can represent an unbounded region (no edges) or a partly bouded region (first and last edge have no next/prev)
+	function Face(){
+	}
+
 	/***************************\
 	|* Private Utility Methods *|
 	\***************************/
@@ -65,7 +75,7 @@ function Voronoi(_points, _sorted){
 	 *@param [Vector] points
 	 *@param function(Vector, Vector) cmp -- comparison function, returns true when a is 'more' than b (more can be more small)
 	 */
-	function findPointExtreema(points, cmp){
+	function findPointExtrema(points, cmp){
 		//these are indexes into the points array
 		var most = 0;
 		
@@ -131,7 +141,7 @@ function Voronoi(_points, _sorted){
 		var right_hull = right_voronoi.getConvexHullPoints();
 		
 		//get the starting points
-		var extrema = hullFindCapExtreema(left_hull, right_hull);
+		var extrema = hullFindCapExtrema(left_hull, right_hull);
 		var left = extrema.left;
 		var right = extrema.right;
 		
@@ -228,13 +238,13 @@ function Voronoi(_points, _sorted){
 	 *@param [Vector] left_hull
 	 *@param [Vector] right_hull
 	 */
-	function hullFindCapExtreema(left_hull, right_hull){
-		var left = findPointExtreema(
+	function hullFindCapExtrema(left_hull, right_hull){
+		var left = findPointExtrema(
 			left_hull,
 			function(a,b){ return a.e(1) > b.e(1); }
 		);
 
-		var right= findPointExtreema(
+		var right= findPointExtrema(
 			right_hull,
 			function(a,b){ return a.e(1) < b.e(1); }
 		);
