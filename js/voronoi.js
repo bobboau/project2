@@ -5,7 +5,7 @@
  */ 
  
 function Voronoi(_points, _sorted){
-
+	
 	/**********************\
 	|* Private Properties *|
 	\**********************/
@@ -21,15 +21,211 @@ function Voronoi(_points, _sorted){
 	 *@var [number]
 	 */
 	var convex_hull = [];
+
+	/**
+	 *collection of all faces
+	 *@var [Face]
+	 */
+	var faces = [];
 	
 	/*****************\
 	|* inner classes *|
 	\*****************/
 	
 	/**
-	 *a face of a Voronoi region, this is effectivly a linked list of lines (edges)
-	 *though it can represent an unbounded region (no edges) or a partly bouded region (first and last edge have no next/prev)
-	function Face(){
+	 *a face of a Voronoi diagram, this is effectivly a doubly linked list of lines (Edges)
+	 *though it can represent an unbounded region (no edges)
+	 *or a partaly bouded region (first and last do not intersect in the correct direction)
+	 *edges are in clockwise winding order and intersections with other edges should be to (see partaly bounded)
+	 *new Faces will be created with no Edges
+	 *the Edge data structure is very much intended to eb strictly internal to Face, there is a itterator object made for the purpose of exposing the Edge data in a safeish way
+	 *@param Vector _generating_point -- the point from which this face is defined
+	 */
+	function Face(_generating_point){
+		
+		/**********************\
+		|* Private Properties *|
+		\**********************/
+	
+		/**
+		 *the point at the center of the region
+		 *@var Vector
+		 */
+		var generating_point = _generating_point.dup();
+		
+		/**
+		 *@var Edge
+		 */
+		var first_edge = null;
+		
+		/**
+		 *used to access internal data from external sources
+		 *will not be given properties or anything, this is just a sectret object only this face has that will never change
+		 *@var object
+		 */
+		var private_key = {};
+		
+		/*****************\
+		|* inner classes *|
+		\*****************/
+	
+		/**
+		 *basicly a node in a linked list of lines
+		 *@param Line _line
+		 *@param Face _parent
+		 *@param Edge _prev
+		 *@param Edge _next
+		 *@param Edge _neighbor_edge -- the edge in the neighboring face that points in the other direction but is colinear
+		 */
+		function Edge(_line, _parent, _prev, _next, _neighbor_edge){
+			this.line = _line;
+			this.parent_face = _parent;
+			this.next = _next;
+			this.prev = _prev;
+			this.neighbor_edge = _neighbor_edge;
+			return this;
+		}
+		
+		/**
+		 *trying to keep our internals internal
+		 */
+		function EdgeIterator(edge){
+			this.getLine = function(){
+				//these really need to be imutable from this interface
+				return edge.line.dup();
+			};
+			this.getNext = function(){
+				return EdgeIterator(edge.next);
+			};
+			this.getPrev = function(){
+				return EdgeIterator(edge.prev);
+			};
+			this.getNeighborEdge = function(){
+				return EdgeIterator(edge.neighbor_edge);
+			};
+			this.getNeighborFace = function(){
+				return edge.neighbor_edge.parent;
+			};
+			this.getParent = function(){
+				return edge.parent;
+			};
+			//the edge is only for internal consumption, and that will be enforced
+			this.getEdge = function(key){
+				if(key == private_key){
+					return edge;
+				}
+				else{
+					throw "***ERROR*** cannot access private data in Edge invalid key"
+				}
+			}
+			return this;
+		}
+
+		/***************************\
+		|* Private Utility Methods *|
+		\***************************/
+		
+		/**
+		 *find first edge that intersects
+		 *@param Line line
+		 *@return object -- {start:Edge,end:Edge} start and end of the intersection
+		 */
+		function findIntersectRange(line){
+			var cur_edge = first_edge;
+			var start_intersect = null;
+			var end_intersect = null;
+			while(cur_edge){
+				var last_intersect = cur_edge.line.intersectionDistanceWith(cur_edge.prev.line);
+				var next_intersect = cur_edge.line.intersectionDistanceWith(cur_edge.next.line);
+				var this_intersect = cur_edge.line.intersectionDistanceWith(line);
+				
+				if(last_intersect < this_intersect && this_intersect < next_intersect){
+					//we have an intersection
+					if(cur_edge.line.direction.cross(line).e(3) < 0){
+						//it is the end intersection of the test line (clockwise winding order)
+						end_intersect = cur_edge;
+					}else{
+						start_intersect = cur_edge
+					}
+				}
+			}
+			return {start:start_intersect, end:end_intersect}
+		}
+		
+		/********************\
+		|* Public Interface *|
+		\********************/
+	
+		/**
+		 *adds a new edge, 
+		 *@param Line edge
+		 *@param Face neighbor -- what is on the other side of this edge
+		 *@param Edge before -- (Optional) if you happen to know which edge comes before this one
+		 *@param Edge after -- (Optional) if you happen to know which edge comes after this one
+		 *@param Edge neighbor_edge -- (Optional) if you happen to know which edge is the neighbor
+		 *@param Edge neighbor_before -- (Optional) if you happen to know which edge comes before the neighbor
+		 *@param Edge neighbor_after -- (Optional) if you happen to know which edge comes after the neighbor
+		 *@return Edge
+		 */
+		this.insertEdge = function(line, neighbor, before, after, neighbor_edge, neighbor_before, neighbor_after){
+			//note a distinction between undefined and null is verymuch being made here
+			//undefined meaning "no value given, you'll have to figure it out", null meaning "I have given you the value and it is none"
+			if(typeof(before) == 'undefined' || typeof(after) == 'undefined'){
+				var range = this.findIntersectRange(line);
+				if(typeof(before) == 'undefined'){
+					before = range.start;
+				}
+				if(typeof(after) == 'undefined'){
+					after = range.end;
+				}
+			}
+			if(typeof(before) == 'EdgeIterator'){
+				before = before.getEdge(private_key);
+			}
+			if(typeof(after) == 'EdgeIterator'){
+				after = after.getEdge(private_key);
+			}
+			
+			var edge = new Edge(line, this, before, after, neighbor_edge);
+			if(before){
+				before.next = edge;
+			}
+			if(after){
+				after.prev = edge;
+			}
+			
+			
+			//if the first_edge is null is the only situation where a double null from findIntersectRange will result in the line getting added
+			if(first_edge == edge.next){
+				first_edge = edge;
+			}
+			
+			//chicken or egg
+			if(!neighbor_edge){
+				neighbor.insertEdge(line.reverseLine(), this, neighbor_before, neighbor_after, edge, before, after);
+			}
+			else{
+				neighbor_edge.neighbor_edge = this;
+			}
+			
+			return new EdgeIterator(edge);
+		}
+		
+		/**
+		 *@return EdgeIterator
+		 */
+		this.getFirstEdge = function(){
+			return new EdgeIterator(first_edge);
+		}
+		
+		/**
+		 *@return Vector
+		 */
+		this.getGeneratingPoint = function(){
+			return generating_point.dup();
+		}
+		
+		return this;
 	}
 
 	/***************************\
@@ -90,28 +286,6 @@ function Voronoi(_points, _sorted){
 	}
 	
 	/**
-	 *makes a line from a segment
-	 *@param Vector start
-	 *@param Vector end
-	 *@return Line
-	 */
-	function line(start, end){
-		var dir = end.subtract(start).toUnitVector();
-		return $L(start,dir);
-	}
-	
-	/**
-	 *tells if the point is on the left of the line
-	 *@param Line line
-	 *@param Vector point
-	 *@return bool -- true if to the left
-	 */
-	function toTheLeft(line, point){
-		var rel = point.subtract(line.anchor).toUnitVector();
-		return line.direction.cross(rel).e(3) > 0;
-	}
-	
-	/**
 	 *given a array make a function that will give the next in sequence in a loop by the given ammount
 	 *@param [???] array
 	 *@param number step
@@ -152,17 +326,17 @@ function Voronoi(_points, _sorted){
 		var isTangentTo = hullFindCapEvaluation(left_hull, right_hull, do_top);
 		
 		//the actual line made by these points
-		var segment = line(left_hull[left], right_hull[right]);
+		var segment = Line.createFromSegment(left_hull[left], right_hull[right]);
 		
 		//anything changed last round
 		while(!isTangentTo.left(segment, next.left(left)) || !isTangentTo.right(segment, next.right(right))){
 			while(!isTangentTo.left(segment, next.left(left))){
 				left = next.left(left);
-				segment = line(left_hull[left], right_hull[right]);
+				segment = Line.createFromSegment(left_hull[left], right_hull[right]);
 			}
 			while(!isTangentTo.right(segment, next.right(right))){
 				right = next.right(right);
-				segment = line(left_hull[left], right_hull[right]);
+				segment = Line.createFromSegment(left_hull[left], right_hull[right]);
 			}
 		}
 		
@@ -259,10 +433,10 @@ function Voronoi(_points, _sorted){
 	 */
 	function hullFindCapEvaluation(left_hull, right_hull, do_top){
 		var isTangentToLeft = function(segment, next_left){
-			return left_hull.length<2 || (toTheLeft(segment, left_hull[next_left]) == do_top)
+			return left_hull.length<2 || (segment.toTheLeft(left_hull[next_left]) == do_top)
 		};
 		var isTangentToRight = function(segment, next_right){
-			return right_hull.length<2 || (toTheLeft(segment, right_hull[next_right]) == do_top)
+			return right_hull.length<2 || (segment.toTheLeft(right_hull[next_right]) == do_top)
 		};
 		return {left:isTangentToLeft, right:isTangentToRight};
 	}
@@ -276,7 +450,7 @@ function Voronoi(_points, _sorted){
 	 *gets a copy of the array of points
 	 *@return [Vector]
 	 */
-	function getPoints(){
+	this.getPoints = function(){
 		return Util.copyPointArray(points);
 	}
 	
@@ -284,7 +458,7 @@ function Voronoi(_points, _sorted){
 	 *gets a copy of the convex hull
 	 *@return [number]
 	 */
-	function getConvexHull(){
+	this.getConvexHull = function (){
 		return convex_hull.slice();
 	}
 	
@@ -292,7 +466,7 @@ function Voronoi(_points, _sorted){
 	 *the convex hull as a point list
 	 *@return [Vector]
 	 */
-	function getConvexHullPoints(){
+	this.getConvexHullPoints = function (){
 		return convex_hull.map(function(i){return points[i];});
 	}
 	
@@ -302,9 +476,5 @@ function Voronoi(_points, _sorted){
 	/********************\
 	|* Public Interface *|
 	\********************/
-	return {
-		getPoints:getPoints,
-		getConvexHull:getConvexHull,
-		getConvexHullPoints:getConvexHullPoints
-	};
+	return this;
 }

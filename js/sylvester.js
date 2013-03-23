@@ -900,6 +900,23 @@ Line.prototype = {
   // Returns the unique intersection point with the argument, if one exists
   intersectionWith: function(obj) {
     if (obj.normal) { return obj.intersectionWith(this); }
+	var k = this.intersectionDistanceWith(obj);
+	if(k === null){ return null; }
+    return Vector.create([P[0] + k*X1, P[1] + k*X2, P[2] + k*X3]);
+  },
+  
+  /**
+   *returns a line pointing in the opposite direction
+   */
+  reverseLine: function(){
+	var ret = this.dup();
+	ret.direction.multiply(-1);
+	return ret;
+  },
+
+  // Returns the unique intersection point with the argument, if one exists
+  intersectionDistanceWith: function(obj) {
+    if (obj.normal) { throw "not implemented"; }
     if (!this.intersects(obj)) { return null; }
     var P = this.anchor.elements, X = this.direction.elements,
         Q = obj.anchor.elements, Y = obj.direction.elements;
@@ -911,7 +928,7 @@ Line.prototype = {
     var YdotY = Y1*Y1 + Y2*Y2 + Y3*Y3;
     var XdotY = X1*Y1 + X2*Y2 + X3*Y3;
     var k = (XdotQsubP * YdotY / XdotX + XdotY * YdotPsubQ) / (YdotY - XdotY * XdotY);
-    return Vector.create([P[0] + k*X1, P[1] + k*X2, P[2] + k*X3]);
+    return k;
   },
 
   // Returns the point on the line that is closest to the given point or line
@@ -1009,6 +1026,17 @@ Line.prototype = {
       direction.elements[2] / mod
     ]);
     return this;
+  },
+
+	/**
+	 *tells if the point is on the left of the line
+	 *@param Line line
+	 *@param Vector point
+	 *@return bool -- true if to the left
+	 */
+  toTheLeft: function(point) {
+    var rel = point.subtract(this.anchor).toUnitVector();
+	return this.direction.cross(rel).e(3) > 0;
   }
 };
 
@@ -1017,6 +1045,16 @@ Line.prototype = {
 Line.create = function(anchor, direction) {
   var L = new Line();
   return L.setVectors(anchor, direction);
+};
+
+/**
+ *construct from a segment
+ *@param Vector start
+ *@param Vector end
+ */
+Line.createFromSegment = function(start, end) {
+	var dir = end.subtract(start).toUnitVector();
+	return Line.create(start,dir);
 };
 
 // Axes
