@@ -17,6 +17,12 @@ function Voronoi(_points, _sorted){
 	var points = Util.copyPointArray(_points);
 
 	/**
+	 *list of Faces
+	 *@var [Face]
+	 */
+	var points = Util.copyPointArray(_points);
+
+	/**
 	 *convex hull of all points represented as indexes to the points
 	 *@var [number]
 	 */
@@ -267,17 +273,18 @@ function Voronoi(_points, _sorted){
 	\*-----------------*/
 	
 	/**
-	 *given an array of Vertexes find the point that is the 'most' (could be most negitive, or most close to 0, you define what most means with the cmp function)
-	 *@param [Vector] points
-	 *@param function(Vector, Vector) cmp -- comparison function, returns true when a is 'more' than b (more can be more small)
+	 *given an array of 'something' find the 'thing' that is the 'most' (could be most negitive, or most close to 0, you define what most means with the cmp function)
+	 *@param [???] things
+	 *@param function(???, ???) cmp -- comparison function, returns true when a is 'more' than b (more can be 'more small')
+	 *@return index of the thing that was deemed to be the 'most'
 	 */
-	function findPointExtrema(points, cmp){
-		//these are indexes into the points array
+	function findExtrema(things, cmp){
+		//these are indexes into the things array
 		var most = 0;
 		
 		//find the extrema
-		for(var i = 0; i<points.length; i++){
-			if(cmp(points[i], points[most])){
+		for(var i = 0; i<things.length; i++){
+			if(cmp(things[i], things[most])){
 				most = i;
 			}
 		}
@@ -286,7 +293,7 @@ function Voronoi(_points, _sorted){
 	}
 	
 	/**
-	 *given a array make a function that will give the next in sequence in a loop by the given ammount
+	 *given a array make a function that will give the next in sequence in a loop by the given amount
 	 *@param [???] array
 	 *@param number step
 	 *@return function(number) -- given an index return the next index
@@ -413,12 +420,12 @@ function Voronoi(_points, _sorted){
 	 *@param [Vector] right_hull
 	 */
 	function hullFindCapExtrema(left_hull, right_hull){
-		var left = findPointExtrema(
+		var left = findExtrema(
 			left_hull,
 			function(a,b){ return a.e(1) > b.e(1); }
 		);
 
-		var right= findPointExtrema(
+		var right= findExtrema(
 			right_hull,
 			function(a,b){ return a.e(1) < b.e(1); }
 		);
