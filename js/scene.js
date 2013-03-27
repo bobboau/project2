@@ -1,5 +1,5 @@
 /**
- *module for managing the abstract representation of the set of points and lines and everything, this is where our improtaint code lives
+ *module for managing the abstract representation of the set of points and lines and everything, this is where our important code lives
  */
 
  Scene = (function(){
