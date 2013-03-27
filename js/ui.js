@@ -35,6 +35,11 @@ var UI = (function(){
 			stroke_style: '#FFFF00',
 			fill_style: 'none',
 			edge_width: 2
+		},
+		face:{
+			stroke_style: '#000000',
+			fill_style: 'none',
+			edge_width: 2
 		}
 	}
 
@@ -45,18 +50,59 @@ var UI = (function(){
 		function(){
 			canvas = $('#display')[0];
 			context = canvas.getContext('2d');
+			context.scale(1,-1);
+			context.translate(0, -canvas.height);
 			
 			//attach the handlers and init the system
 			$('#calculate_button').click(calculate);
 			$('#clear_button').click(clear);
 			$('#random_button').click(random);
 			$('#display').click(addPoint);
+			$('#display').mousemove(displayPoint);
 		}
 	);
 
 	/*****************************\
 	|* Private Utility Functions *|
 	\*****************************/
+	
+	/**
+	 *given a line find the canvas border line that has an intersection
+	 *@param Line line
+	 *@return Line
+	 */
+	function getCanvasIntersectionLine(line){
+		var x_line;
+		if(line.direction.e(1) < 0){
+			//left
+			x_line = $L( $V([0,0,0]), $V([0,1,0]));
+		}
+		else
+		{
+			//right
+			x_line = $L( $V([canvas.width,canvas.height,0]), $V([0,-1,0]));
+		}
+		
+		var y_line;
+		if(line.direction.e(2) < 0){
+			//bottom
+			y_line = $L( $V([canvas.width,0,0]), $V([-1,0,0]));
+		}
+		else
+		{
+			//top
+			y_line = $L( $V([0,canvas.height,0]), $V([1,0,0]));
+		}
+		
+		var x_dist = line.intersectionDistanceWith(x_line);
+		var y_dist = line.intersectionDistanceWith(y_line);
+		if(x_dist < y_dist){
+			return x_line;
+		}else
+		{
+			return y_line;
+		}
+	}
 	
 	/**
 	 *look at the scene and make the display look like it
@@ -66,9 +112,9 @@ var UI = (function(){
 		//clear what was ever there before
 		context.clearRect(0, 0, canvas.width, canvas.height);
 		
-		//draw the convex hull
 		var voronoi = Scene.getDiagram();
 		if(voronoi){
+			//draw the convex hull
 			var voronoi_hull = voronoi.getConvexHullPoints();
 			
 			context.fillStyle = config.hull.fill_style;
@@ -89,6 +135,45 @@ var UI = (function(){
 			);
 			context.lineTo(voronoi_hull[0].e(1), voronoi_hull[0].e(2));
 			context.stroke();
+			
+			context.fillStyle = config.face.fill_style;
+			context.lineWidth = config.face.edge_width;
+			context.strokeStyle = config.face.stroke_style;
+			//draw the faces
+			for(var i = 0; i<voronoi.getFaceCount(); i++){
+				context.beginPath();
+				var face = voronoi.getFace(i);
+				var edge = face.getFirstEdge();
+				if(!edge.isValid()){
+					continue;
+				}
+				
+				var last_line = getCanvasIntersectionLine(edge.getLine().reverseLine());
+				if(edge.getPrev().isValid()){
+					last_line = edge.getPrev().getLine();
+				}
+				
+				var line = edge.getLine();
+				var point = last_line.intersectionWith(line);
+				context.moveTo(point.e(1), point.e(2));
+				last_line = line;
+				
+				while(!edge.isLast()){
+					edge = edge.getNext();
+					line = edge.getLine();
+					point = last_line.intersectionWith(line);
+					context.lineTo(point.e(1), point.e(2));
+					last_line = line;
+				}
+				
+				var line = getCanvasIntersectionLine(edge.getLine());
+				if(edge.getNext().isValid()){
+					line = edge.getNext().getLine();
+				}
+				point = edge.getLine().intersectionWith(line);
+				context.lineTo(point.e(1), point.e(2));
+				context.stroke();
+			}
 		}
 		
 		//draw all the points
@@ -137,8 +222,20 @@ var UI = (function(){
 		var offset = $(event.target).offset();
 		var x = event.pageX - offset.left;
 		var y = event.pageY - offset.top;
-		Scene.addPoint(x, y);
+		Scene.addPoint(x, canvas.width-y);
 		updateDisplay();
+	}
+	
+	/**
+	 *event handler for the canvas's mousemove event
+	 *@param eventObject event -- the triggering event
+	 */
+	function displayPoint(event){
+		var offset = $(event.target).offset();
+		var x = event.pageX - offset.left;
+		var y = event.pageY - offset.top;
+		$('#coords_x').text(x);
+		$('#coords_y').text(canvas.width-y);
 	}
 	
 	/**

@@ -902,7 +902,7 @@ Line.prototype = {
     if (obj.normal) { return obj.intersectionWith(this); }
 	var k = this.intersectionDistanceWith(obj);
 	if(k === null){ return null; }
-    return Vector.create([P[0] + k*X1, P[1] + k*X2, P[2] + k*X3]);
+    return this.anchor.add(this.direction.multiply(k));
   },
   
   /**
@@ -910,7 +910,7 @@ Line.prototype = {
    */
   reverseLine: function(){
 	var ret = this.dup();
-	ret.direction.multiply(-1);
+	ret.direction = ret.direction.multiply(-1);
 	return ret;
   },
 
@@ -1055,6 +1055,17 @@ Line.create = function(anchor, direction) {
 Line.createFromSegment = function(start, end) {
 	var dir = end.subtract(start).toUnitVector();
 	return Line.create(start,dir);
+};
+
+/**
+ *given a 2d segment make a perpendicular line
+ *@param Vector start
+ *@param Vector end
+ */
+Line.createPerpFromSegment = function(start, end) {
+	var center = start.add(end).multiply(0.5);
+	var dir = end.subtract(start).cross($V([0,0,1])).toUnitVector();
+	return Line.create(center,dir);
 };
 
 // Axes
