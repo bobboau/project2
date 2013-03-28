@@ -121,7 +121,7 @@ function Voronoi(_points, _sorted){
 					throw "***ERROR*** cannot access private data in Edge invalid key"
 				}
 			}
-			this.debug_edge = edge;
+			this.debug_edge = edge;//this is just for debugging
 			return this;
 		}
 
@@ -177,12 +177,36 @@ function Voronoi(_points, _sorted){
 				first_edge = edge;
 			}
 			
+			//check to see if we just made the list circular
+			var check = edge;
+			while(check && check.next != edge){
+				check = check.next;
+			}
+			//if we did reroot it the list at the new edge
+			if(check){
+				first_edge = edge;
+			}
+			
 			//chicken or egg
 			if(!neighbor_edge){
 				neighbor.insertEdge(line.reverseLine(), this, neighbor_before, neighbor_after, edge, before, after);
 			}
 			else{
 				neighbor_edge.neighbor_edge = edge;
+			}
+			
+			var test = first_edge;
+			var count = 0;
+			while(test){
+				test = test.next;
+				if(test == first_edge){
+					break;
+				}
+				count++;
+				if(count > 1000){
+					debugger;
+					break;
+				}
 			}
 			
 			return new EdgeIterator(edge);
@@ -211,19 +235,27 @@ function Voronoi(_points, _sorted){
 			var cur_edge = first_edge;
 			var start_intersect = null;
 			var end_intersect = null;
+			//go over every edge
 			while(cur_edge){
+				//see how far back an intersection could be
 				var last_intersect = null
 				if(cur_edge.prev){
 					last_intersect = cur_edge.line.intersectionDistanceWith(cur_edge.prev.line);
 				}
+				
+				//see how far forward an intersection could be
 				var next_intersect = null
 				if(cur_edge.next){
 					next_intersect = cur_edge.line.intersectionDistanceWith(cur_edge.next.line);
 				}
+				
+				//see where the intersection is
 				var this_intersect = cur_edge.line.intersectionDistanceWith(line);
 				
+				//if the intersection is between the intersection with the previous edge and the next, then it did indeed hit this edge
 				if((!last_intersect || last_intersect < this_intersect) && (!next_intersect || this_intersect < next_intersect)){
-					//we have an intersection
+					//we have an intersection, we need to figure out if it is coming or going
+					//because we have clockwise winding if the test line is to the right, then it is entering, otherwise it's leaving
 					if(cur_edge.line.direction.cross(line.direction).e(3) < 0){
 						//it is the end intersection of the test line (clockwise winding order)
 						end_intersect = cur_edge;
@@ -233,6 +265,9 @@ function Voronoi(_points, _sorted){
 				}
 				
 				cur_edge = cur_edge.next
+				if(cur_edge == first_edge){
+					break;
+				}
 			}
 			return {start: new EdgeIterator(start_intersect), end: new EdgeIterator(end_intersect)}
 		}
@@ -243,7 +278,6 @@ function Voronoi(_points, _sorted){
 	/***************************\
 	|* Private Utility Methods *|
 	\***************************/
-	
 	/**
 	 *set up the more complex portions of this data structure
 	 *this is the highest level of the voronoi diagram algorithm
@@ -263,8 +297,8 @@ function Voronoi(_points, _sorted){
 			var left_half = new Voronoi(_points.slice(0,split), true);
 			var right_half = new Voronoi(_points.slice(split), true);
 			
-			var bot = hullFindCap(left_half, right_half, true);
-			var top = hullFindCap(left_half, right_half, false);
+			var bot = hullFindCap(left_half, right_half, false);
+			var top = hullFindCap(left_half, right_half, true);
 			
 			//start the merge
 			
@@ -281,58 +315,10 @@ function Voronoi(_points, _sorted){
 			}
 			debug_faces = faces;//this is so I can see the state of the current node this serves no programatic function, just there so I have a reference in the debugger
 			
-			//OMG NONE OF THIS WORKS!!!
+			//build our selves up from our children
+			merge(left_half, right_half, top, bot);
 			
-			//start with the top of the hull seam and work our way to the bottom
-			//the first intersection has to happen on the end edge of the top fage of the hull
-			var left = top.left;
-			var right = top.right;
-			var nextLeft = Util.makeLoopIterator(left_half.getFaceCount(), 1);
-			var nextRight = Util.makeLoopIterator(right_half.getFaceCount(), -1);
-
-			while(left != bot.left || right != bot.right){
-
-				var left_face = left_half.getFace(left);
-				var right_face = right_half.getFace(right);
-				var bisector = Line.createPerpFromSegment(left_face.getGeneratingPoint(), right_face.getGeneratingPoint());
-
-				var left_intersection_range = left_face.findIntersectRange(bisector);
-				var left_intersection = left_intersection_range.end;
-				var left_intersection_dist = (left_intersection.isValid()) ? bisector.intersectionDistanceWith(left_intersection.getLine()) : null;
-				
-				var right_intersection_range = right_face.findIntersectRange(bisector.reverseLine());
-				var right_intersection = right_intersection_range.end;
-				var right_intersection_dist = (right_intersection.isValid()) ? bisector.intersectionDistanceWith(right_intersection.getLine()) : null;
-				
-				//insert the bisecor into the face pair
-				//keep in mind my faces are their faces now
-				left_face.insertEdge(bisector, right_face, left_intersection_range.end, left_intersection_range.start, null, right_intersection_range.end, right_intersection_range.start)
-				
-				//left intersection higher, incement with left, otherwise right
-				if(right_intersection_dist === null || right_intersection_dist < 0 || (left_intersection_dist !== null && left_intersection_dist < right_intersection_dist)){
-					left = nextLeft(left);
-				}else{
-					right = nextRight(right);
-				}
-			}
-			
-			var left_face = left_half.getFace(left);
-			var right_face = right_half.getFace(right);
-			var bisector = Line.createPerpFromSegment(left_face.getGeneratingPoint(), right_face.getGeneratingPoint());
-
-			var left_intersection_range = left_face.findIntersectRange(bisector);
-			var left_intersection = left_intersection_range.end;
-			var left_intersection_dist = (left_intersection.isValid()) ? bisector.intersectionDistanceWith(left_intersection.getLine()) : null;
-			
-			var right_intersection_range = right_face.findIntersectRange(bisector.reverseLine());
-			var right_intersection = right_intersection_range.end;
-			var right_intersection_dist = (right_intersection.isValid()) ? bisector.intersectionDistanceWith(right_intersection.getLine()) : null;
-			
-			//insert the bisecor into the face pair
-			//keep in mind my faces are their faces now
-			left_face.insertEdge(bisector, right_face, left_intersection_range.end, left_intersection_range.start, null, right_intersection_range.end, right_intersection_range.start)
-			
-			//well, actually this works
+			//build the hull
 			constructHull(left_half, right_half, bot, top, split);
 		}
 		else{
@@ -352,6 +338,61 @@ function Voronoi(_points, _sorted){
 	/*-----------------*\
 	| major subroutines |
 	\*-----------------*/
+	
+	/**
+	 *merges the two child diagrams into this
+	 *@param Voronoi left_half
+	 *@param Voronoi right_half
+	 *@param object top -- {left:number,right:number}
+	 *@param object bot -- {left:number,right:number}
+	 */
+	function merge(left_half, right_half, top, bot){
+		//start with the top of the hull seam and work our way to the bottom
+		//the first intersection has to happen on the end edge of the top fage of the hull
+		var left_hull = left_half.getConvexHull();
+		var right_hull = right_half.getConvexHull();
+		
+		var nextLeft = Util.makeLoopIterator(left_hull.length, 1);
+		var nextRight = Util.makeLoopIterator(right_hull.length, -1);
+		
+		var left = top.left;
+		var right = top.right;
+		var left_face = left_half.getFace(left_hull[left]);
+		var right_face = right_half.getFace(right_hull[right]);
+		
+		var last_intersect = left_face.getGeneratingPoint().add(right_face.getGeneratingPoint()).multiply(0.5);
+					
+		while(left != bot.left || right != bot.right){
+			var dir = right_face.getGeneratingPoint().subtract(left_face.getGeneratingPoint()).cross($V([0,0,1])).multiply(-1).toUnitVector();
+			var bisector = $L(last_intersect, dir);
+
+			var left_intersections = getIntersectionsFromFace(left_face, bisector);
+			var right_intersections = getIntersectionsFromFace(right_face, bisector);
+			
+			//insert the bisecor into the face pair
+			left_face.insertEdge(bisector.reverseLine(), right_face, left_intersections.start, left_intersections.end, null, right_intersections.end, right_intersections.start)
+			
+			//if left intersection higher, incement with left, otherwise right
+			if(right_intersections.pnt === null || (left_intersections.pnt !== null && left_intersections.pnt.e(2) > right_intersections.pnt.e(2))){
+				left = nextLeft(left);
+				last_intersect = left_intersections.pnt;
+			}else{
+				right = nextRight(right);
+				last_intersect = right_intersections.pnt;
+			}
+			
+			left_face = left_half.getFace(left_hull[left]);
+			right_face = right_half.getFace(right_hull[right]);
+		}
+		var dir = right_face.getGeneratingPoint().subtract(left_face.getGeneratingPoint()).cross($V([0,0,1])).multiply(-1).toUnitVector();
+		var bisector = $L(last_intersect, dir);
+
+		var left_intersections = getIntersectionsFromFace(left_face, bisector);
+		var right_intersections = getIntersectionsFromFace(right_face, bisector);
+		
+		//insert the bisecor into the face pair
+		left_face.insertEdge(bisector.reverseLine(), right_face, left_intersections.start, left_intersections.end, null, right_intersections.end, right_intersections.start)
+	}
 	
 	/**
 	 *given two Vorinoi find the points on the convex hull of each that represents the top/bottom segments of the hull of the union of them
@@ -401,7 +442,7 @@ function Voronoi(_points, _sorted){
 	 *@param object top -- {left:number,right:number} numbers are indexes into the respective hulls hull -- this is the top patch between left and right
 	 *@param object bot -- {left:number,right:number} numbers are indexes into the respective hulls hull -- this is the bottom patch between left and right
 	 */
-	function constructHull(left_half, right_half, top, bot, split){
+	function constructHull(left_half, right_half, bot, top, split){
 		var left_hull = left_half.getConvexHull();
 		var right_hull = right_half.getConvexHull();
 		
@@ -483,14 +524,31 @@ function Voronoi(_points, _sorted){
 	 */
 	function hullFindCapEvaluation(left_hull, right_hull, do_top){
 		var isTangentToLeft = function(segment, next_left){
-			return left_hull.length<2 || (segment.toTheLeft(left_hull[next_left]) == do_top)
+			return left_hull.length<2 || (segment.toTheLeft(left_hull[next_left]) != do_top)
 		};
 		var isTangentToRight = function(segment, next_right){
-			return right_hull.length<2 || (segment.toTheLeft(right_hull[next_right]) == do_top)
+			return right_hull.length<2 || (segment.toTheLeft(right_hull[next_right]) != do_top)
 		};
 		return {left:isTangentToLeft, right:isTangentToRight};
 	}
 	
+	/*~~~~~*\
+	~ merge ~
+	\*~~~~~*/
+	/**
+	 *split off of merge, because it was repeted four times
+	 *@param Face face
+	 *@param Line bisector
+	 *@return object -- {start:EdgeIterator,end:EdgeIterator,pnt:Vector}
+	 */
+	function getIntersectionsFromFace(face, bisector){
+		var intersection_range = face.findIntersectRange(bisector);
+		intersection_range.pnt = null;
+		if(intersection_range.end.isValid()){
+			intersection_range.pnt = bisector.intersectionWith(intersection_range.end.getLine());
+		}
+		return intersection_range;
+	}
 	
 	/********************\
 	|* simple accessors *|

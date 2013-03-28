@@ -78,7 +78,6 @@
 	function getDiagram(){
 		return diagram;
 	}
-	
 	/**
 	 *does the calculation
 	 *entry point for what our grade will be based on
