@@ -57,6 +57,7 @@ var UI = (function(){
 			$('#calculate_button').click(calculate);
 			$('#clear_button').click(clear);
 			$('#random_button').click(random);
+			$('#manual_button').click(manual);
 			$('#display').click(addPoint);
 			$('#display').mousemove(displayPoint);
 		}
@@ -236,6 +237,20 @@ var UI = (function(){
 		var y = event.pageY - offset.top;
 		$('#coords_x').text(x);
 		$('#coords_y').text(canvas.width-y);
+	}
+	
+	/**
+	 *allows the textual input of points
+	 */
+	function manual(){
+		var points = JSON.parse($("#manual_input").val());
+		$.each(
+			points,
+			function(idx, point){
+				Scene.addPoint(point[0], point[1]);
+			}
+		);
+		updateDisplay();
 	}
 	
 	/**
