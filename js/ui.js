@@ -57,7 +57,8 @@ var UI = (function(){
 			$('#calculate_button').click(calculate);
 			$('#clear_button').click(clear);
 			$('#random_button').click(random);
-			$('#manual_button').click(manual);
+			$('#import_button').click(importPoints);
+			$('#export_button').click(exportPoints);
 			$('#display').click(addPoint);
 			$('#display').mousemove(displayPoint);
 		}
@@ -242,8 +243,8 @@ var UI = (function(){
 	/**
 	 *allows the textual input of points
 	 */
-	function manual(){
-		var points = JSON.parse($("#manual_input").val());
+	function importPoints(){
+		var points = JSON.parse($("#import_input").val());
 		$.each(
 			points,
 			function(idx, point){
@@ -251,6 +252,21 @@ var UI = (function(){
 			}
 		);
 		updateDisplay();
+	}
+	
+	/**
+	 *allows the textual input of points
+	 */
+	function exportPoints(){
+		var points = Scene.getPoints();
+		var export_points = [];
+		$.each(
+			points,
+			function(idx, point){
+				export_points.push([point.e(1),point.e(2)]);
+			}
+		);
+		$("#export_output").text(JSON.stringify(export_points));
 	}
 	
 	/**
