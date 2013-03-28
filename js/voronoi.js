@@ -107,10 +107,10 @@ function Voronoi(_points, _sorted){
 				return new EdgeIterator(edge.neighbor_edge);
 			};
 			this.getNeighborFace = function(){
-				return edge.neighbor_edge.parent;
+				return edge.neighbor_edge.parent_face;
 			};
 			this.getParent = function(){
-				return edge.parent;
+				return edge.parent_face;
 			};
 			//the edge is only for internal consumption, and that will be enforced
 			this.getEdge = function(key){
@@ -360,9 +360,12 @@ function Voronoi(_points, _sorted){
 		var left_face = left_half.getFace(left_hull[left]);
 		var right_face = right_half.getFace(right_hull[right]);
 		
+		var left_end = left_half.getFace(left_hull[bot.left]);
+		var right_end = right_half.getFace(right_hull[bot.right]);
+		
 		var last_intersect = left_face.getGeneratingPoint().add(right_face.getGeneratingPoint()).multiply(0.5);
 					
-		while(left != bot.left || right != bot.right){
+		while(left_face != left_end || right_face != right_end){
 			var dir = right_face.getGeneratingPoint().subtract(left_face.getGeneratingPoint()).cross($V([0,0,1])).multiply(-1).toUnitVector();
 			var bisector = $L(last_intersect, dir);
 
@@ -374,15 +377,12 @@ function Voronoi(_points, _sorted){
 			
 			//if left intersection higher, incement with left, otherwise right
 			if(right_intersections.pnt === null || (left_intersections.pnt !== null && left_intersections.pnt.e(2) > right_intersections.pnt.e(2))){
-				left = nextLeft(left);
+				left_face = left_intersections.end.getNeighborFace()
 				last_intersect = left_intersections.pnt;
 			}else{
-				right = nextRight(right);
+				right_face = right_intersections.end.getNeighborFace();
 				last_intersect = right_intersections.pnt;
 			}
-			
-			left_face = left_half.getFace(left_hull[left]);
-			right_face = right_half.getFace(right_hull[right]);
 		}
 		var dir = right_face.getGeneratingPoint().subtract(left_face.getGeneratingPoint()).cross($V([0,0,1])).multiply(-1).toUnitVector();
 		var bisector = $L(last_intersect, dir);
