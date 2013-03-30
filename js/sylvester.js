@@ -1036,7 +1036,7 @@ Line.prototype = {
 	 */
   toTheLeft: function(point) {
     var rel = point.subtract(this.anchor).toUnitVector();
-	return this.direction.cross(rel).e(3) > 0;
+	return this.direction.cross(rel).e(3) >= 0;
   }
 };
 

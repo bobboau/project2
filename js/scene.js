@@ -63,6 +63,25 @@
 	}
 	
 	/**
+	 *moves the most recently added point on the screen, adds one if there was none
+	 *@param number x
+	 *@param number y
+	 */
+	function updatePoint(x, y){
+		var new_point = $V([x,y,0]);
+		while(!isPointValid(new_point)){
+			new_point = $V([x+Math.random(),y+Math.random(),0]);
+		}
+		if(points.length < 1){
+			points.push(new_point);
+		}
+		else{
+			points[points.length-1] = new_point;
+		}
+		calculate();
+	}
+	
+	/**
 	 *retrives all points in the scene
 	 *@return [Vector]
 	 */
@@ -92,6 +111,7 @@
 		addPoint:addPoint,
 		getPoints:getPoints,
 		getDiagram:getDiagram,
-		calculate:calculate
+		calculate:calculate,
+		updatePoint:updatePoint
 	};
 })();

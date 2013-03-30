@@ -86,6 +86,21 @@ var UI = (function(){
 	\*****************************/
 	
 	/**
+	 *given a few numbers, make a psudo-random number
+	 *@param [number] nums
+	 *@return number
+	 */
+	function hash(nums){
+		var hash = 0;
+		for(var i = 0; i<nums.length; i++){
+				var num = nums[i];
+				hash *= (hash+1)*(num+1);
+				hash = num + ((hash << 5) - hash);
+		}
+		return hash;
+	}
+	
+	/**
 	 *given a line find the canvas border line that has an intersection
 	 *@param Line line
 	 *@return Line
@@ -221,8 +236,14 @@ var UI = (function(){
 				}
 				
 				context.stroke();
+				
 				//fill with a random color
-				context.fillStyle = '#'+(~~(Math.random()*256)).toString(16)+(~~(Math.random()*256)).toString(16)+(~~(Math.random()*256)).toString(16);
+				var face_point = face.getGeneratingPoint();
+				var color = Math.abs(hash(face_point.elements)%0xffffff).toString(16);
+				while(color.length < 6){
+						color = '0'+color;
+				}
+				context.fillStyle = '#'+color;
 				context.fill();
 			}
 		}
@@ -287,6 +308,14 @@ var UI = (function(){
 		var y = event.pageY - offset.top;
 		$('#coords_x').text(x);
 		$('#coords_y').text(canvas.width-y);
+		
+		if($('#live_insert_checkbox').prop('checked')){
+			var offset = $(event.target).offset();
+			var x = event.pageX - offset.left;
+			var y = event.pageY - offset.top;
+			Scene.updatePoint(x, canvas.width-y);
+			updateDisplay()
+		}
 	}
 	
 	/**
