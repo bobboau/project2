@@ -163,7 +163,7 @@ var UI = (function(){
 			context.strokeStyle = config.face.stroke_style;
 			//draw the faces
 			for(var i = 0; i<voronoi.getFaceCount(); i++){
-//context.clearRect(0, 0, canvas.width, canvas.height);
+
 				context.beginPath();
 				var face = voronoi.getFace(i);
 				var edge = face.getFirstEdge();
@@ -196,7 +196,7 @@ var UI = (function(){
 						border_line = getCanvasIntersectionLine(last_line);
 						var point = last_line.intersectionWith(border_line);
 						context.lineTo(point.e(1), point.e(2));
-//context.stroke();
+
 						last_line = border_line;
 						
 						//now find which border we intersect with
@@ -205,7 +205,7 @@ var UI = (function(){
 						while(border_line != last_line){
 							var point = last_line.intersectionWith(last_line.next);
 							context.lineTo(point.e(1), point.e(2));
-//context.stroke();
+
 							last_line = last_line.next;
 						}
 					}
@@ -214,7 +214,7 @@ var UI = (function(){
 					line = edge.getLine();
 					var point = last_line.intersectionWith(line);
 					context.lineTo(point.e(1), point.e(2));
-//context.stroke();
+
 					last_line = line;
 					quit = quit_next_time;
 					quit_next_time = edge.isLast();

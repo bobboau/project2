@@ -52,6 +52,22 @@ function Voronoi(_points, _sorted){
 		var first_edge = null;
 		
 		/**
+		 *the start of the one and only gap if there is one
+		 *@var Edge
+		 */
+		var gap_start = null;
+		
+		/**
+		 *the end of the one and only gap if there is one
+		 *@var Edge
+		 */
+		var gap_end = null;
+		
+		/**
+		 *NOTE: the gap_start and gap_end become orphaned when a face becomes bounded, they are never touched again once the list becomes properly circular
+		 */
+		
+		/**
 		 *used to access internal data from external sources
 		 *will not be given properties or anything, this is just a sectret object only this face has that will never change
 		 *@var object
@@ -182,19 +198,20 @@ function Voronoi(_points, _sorted){
 				edge.next = edge;
 				edge.next_intersects = false;
 				edge.prev_intersects = false;
+				gap_start = gap_end = edge;
 			}
 			else{
 				if(before && !after){
-					before.next.prev = edge;
-					edge.next = before.next;
+					gap_end.prev = edge;
+					edge.next = gap_end;
 					edge.next_intersects = false;
-					before.next.prev_intersects = false;
+					gap_start = edge;
 				}
 				if(after && !before){
-					after.prev.next = edge;
-					edge.prev = after.prev;
+					gap_start.next = edge;
+					edge.prev = gap_start;
 					edge.prev_intersects = false;
-					after.prev.next_intersects = false;
+					gap_end = edge;
 				}
 			}
 			
@@ -285,7 +302,7 @@ function Voronoi(_points, _sorted){
 				if((last_intersect === null || last_intersect < this_intersect) && (next_intersect === null || this_intersect < next_intersect)){
 					//we have an intersection, we need to figure out if it is coming or going
 					//because we have clockwise winding if the test line is to the right, then it is entering, otherwise it's leaving
-					if(cur_edge.getLine().direction.cross(line.direction).e(3) < 0){
+					if(cur_edge.getLine().direction.cross(line.direction).e(3) > 0){
 						//it is the end intersection of the test line (clockwise winding order)
 						end_intersect = cur_edge;
 					}else{
@@ -311,7 +328,6 @@ function Voronoi(_points, _sorted){
 	 *set up the more complex portions of this data structure
 	 *this is the highest level of the voronoi diagram algorithm
 	 */
-var that = this;
 	function init(){
 	
 		//make sure we no longer have a reference to something outside our scope
@@ -344,7 +360,7 @@ var that = this;
 				faces[left_half.getFaceCount()+i].idx += left_half.getFaceCount();//this is just for debugging
 			}
 			debug_faces = faces;//this is so I can see the state of the current node this serves no programatic function, just there so I have a reference in the debugger
-			
+
 			//build our selves up from our children
 			merge(left_half, right_half, top, bot);
 			
@@ -394,14 +410,14 @@ var that = this;
 		var last_intersect = left_face.getGeneratingPoint().add(right_face.getGeneratingPoint()).multiply(0.5);
 					
 		while(left_face != left_end || right_face != right_end){
-			var dir = right_face.getGeneratingPoint().subtract(left_face.getGeneratingPoint()).cross($V([0,0,1])).multiply(-1).toUnitVector();
+			var dir = right_face.getGeneratingPoint().subtract(left_face.getGeneratingPoint()).cross($V([0,0,1])).toUnitVector();
 			var bisector = $L(last_intersect, dir);
 
 			var left_intersections = getIntersectionsFromFace(left_face, bisector);
 			var right_intersections = getIntersectionsFromFace(right_face, bisector);
 			
 			//insert the bisecor into the face pair
-			left_face.insertEdge(bisector.reverseLine(), right_face, left_intersections.start, left_intersections.end, null, right_intersections.end, right_intersections.start)
+			left_face.insertEdge(bisector, right_face, left_intersections.start, left_intersections.end, null, right_intersections.end, right_intersections.start)
 			
 			//if left intersection higher, incement with left, otherwise right
 			if(right_intersections.end_pnt === null || (left_intersections.end_pnt !== null && left_intersections.end_pnt.e(2) > right_intersections.end_pnt.e(2))){
@@ -413,14 +429,14 @@ var that = this;
 			}
 		}
 
-		var dir = right_face.getGeneratingPoint().subtract(left_face.getGeneratingPoint()).cross($V([0,0,1])).multiply(-1).toUnitVector();
+		var dir = right_face.getGeneratingPoint().subtract(left_face.getGeneratingPoint()).cross($V([0,0,1])).toUnitVector();
 		var bisector = $L(last_intersect, dir);
 
 		var left_intersections = getIntersectionsFromFace(left_face, bisector);
 		var right_intersections = getIntersectionsFromFace(right_face, bisector);
 		
 		//insert the bisecor into the face pair
-		left_face.insertEdge(bisector.reverseLine(), right_face, left_intersections.start, left_intersections.end, null, right_intersections.end, right_intersections.start)
+		left_face.insertEdge(bisector, right_face, left_intersections.start, left_intersections.end, null, right_intersections.end, right_intersections.start)
 
 	}
 	
