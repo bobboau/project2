@@ -235,19 +235,6 @@ function Voronoi(_points, _sorted){
 				neighbor_edge.neighbor_edge = edge;
 			}
 			
-			var test = first_edge;
-			var count = 0;
-			while(test){
-				test = test.next;
-				if(test == first_edge){
-					break;
-				}
-				count++;
-				if(count > 1000){
-					debugger;
-					break;
-				}
-			}
 			return new EdgeIterator(edge);
 		}
 		
