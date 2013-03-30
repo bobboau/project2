@@ -186,7 +186,6 @@ var UI = (function(){
 				last_line = line;
 				edge = edge.getNext();
 				
-				
 				//each iteration of this loop draws from the last line to the curent line
 				while(!quit){
 					//before we do anything we need to handle border intersections
@@ -222,6 +221,9 @@ var UI = (function(){
 				}
 				
 				context.stroke();
+				//fill with a random color
+				context.fillStyle = '#'+(~~(Math.random()*256)).toString(16)+(~~(Math.random()*256)).toString(16)+(~~(Math.random()*256)).toString(16);
+				context.fill();
 			}
 		}
 		
