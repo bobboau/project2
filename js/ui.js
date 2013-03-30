@@ -19,6 +19,11 @@ var UI = (function(){
 	var context = null;
 	
 	/**
+	 *@var object {left:Line, right:Line, top:Line, bottom:Line}
+	 */
+	var borders = {};
+	
+	/**
 	 *these are a bunch of configuration values
 	 *they should be constant, but js does not have an understanding of this concept
 	 *so, just don't ever change them please
@@ -61,6 +66,18 @@ var UI = (function(){
 			$('#export_button').click(exportPoints);
 			$('#display').click(addPoint);
 			$('#display').mousemove(displayPoint);
+			
+			borders = {
+				left:$L( $V([0,0,0]), $V([0,1,0])),
+				right:$L( $V([canvas.width,canvas.height,0]), $V([0,-1,0])),
+				top:$L( $V([0,canvas.height,0]), $V([1,0,0])),
+				bottom:$L( $V([canvas.width,0,0]), $V([-1,0,0]))
+			};
+			
+			borders.left.next = borders.top;
+			borders.top.next = borders.right;
+			borders.right.next = borders.bottom;
+			borders.bottom.next = borders.left;
 		}
 	);
 
@@ -74,26 +91,27 @@ var UI = (function(){
 	 *@return Line
 	 */
 	function getCanvasIntersectionLine(line){
+		
 		var x_line;
 		if(line.direction.e(1) < 0){
 			//left
-			x_line = $L( $V([0,0,0]), $V([0,1,0]));
+			x_line = borders.left;
 		}
 		else
 		{
 			//right
-			x_line = $L( $V([canvas.width,canvas.height,0]), $V([0,-1,0]));
+			x_line = borders.right;
 		}
 		
 		var y_line;
 		if(line.direction.e(2) < 0){
 			//bottom
-			y_line = $L( $V([canvas.width,0,0]), $V([-1,0,0]));
+			y_line = borders.bottom;
 		}
 		else
 		{
 			//top
-			y_line = $L( $V([0,canvas.height,0]), $V([1,0,0]));
+			y_line = borders.top;
 		}
 		
 		var x_dist = line.intersectionDistanceWith(x_line);
@@ -119,30 +137,33 @@ var UI = (function(){
 			//draw the convex hull
 			var voronoi_hull = voronoi.getConvexHullPoints();
 			
-			context.fillStyle = config.hull.fill_style;
-			context.lineWidth = config.hull.edge_width;
-			context.strokeStyle = config.hull.stroke_style;
-			
-			context.beginPath();
-			$.each(
-				voronoi_hull,
-				function(i, point){
-					if(i>0){
-						context.lineTo(point.e(1), point.e(2));
+			if(voronoi_hull.length > 0){
+				context.fillStyle = config.hull.fill_style;
+				context.lineWidth = config.hull.edge_width;
+				context.strokeStyle = config.hull.stroke_style;
+				
+				context.beginPath();
+				$.each(
+					voronoi_hull,
+					function(i, point){
+						if(i>0){
+							context.lineTo(point.e(1), point.e(2));
+						}
+						else{
+							context.moveTo(point.e(1), point.e(2));
+						}
 					}
-					else{
-						context.moveTo(point.e(1), point.e(2));
-					}
-				}
-			);
-			context.lineTo(voronoi_hull[0].e(1), voronoi_hull[0].e(2));
-			context.stroke();
+				);
+				context.lineTo(voronoi_hull[0].e(1), voronoi_hull[0].e(2));
+				context.stroke();
+			}
 			
 			context.fillStyle = config.face.fill_style;
 			context.lineWidth = config.face.edge_width;
 			context.strokeStyle = config.face.stroke_style;
 			//draw the faces
 			for(var i = 0; i<voronoi.getFaceCount(); i++){
+//context.clearRect(0, 0, canvas.width, canvas.height);
 				context.beginPath();
 				var face = voronoi.getFace(i);
 				var edge = face.getFirstEdge();
@@ -150,30 +171,56 @@ var UI = (function(){
 					continue;
 				}
 				
-				var last_line = getCanvasIntersectionLine(edge.getLine().reverseLine());
-				if(edge.getPrev().isValid()){
-					last_line = edge.getPrev().getLine();
-				}
-				
+				//to start things off we need to move to the intersection of the first line and the line before it
 				var line = edge.getLine();
+				var last_line = edge.getPrev().getLine();
+				if(!edge.prevIntersects()){
+					//if the last edge is across an unbounded segment then we need to use the border instead
+					last_line = getCanvasIntersectionLine(edge.getLine().reverseLine());
+				}
 				var point = last_line.intersectionWith(line);
 				context.moveTo(point.e(1), point.e(2));
+
+				var quit = false;
+				var quit_next_time = edge.isLast();
 				last_line = line;
+				edge = edge.getNext();
 				
-				while(!edge.isLast()){
-					edge = edge.getNext();
+				
+				//each iteration of this loop draws from the last line to the curent line
+				while(!quit){
+					//before we do anything we need to handle border intersections
+					if(!edge.prevIntersects()){
+						//if the previous edge does not intersect we need to draw part of the border
+						//first draw from the last line to the border edge it intersects
+						border_line = getCanvasIntersectionLine(last_line);
+						var point = last_line.intersectionWith(border_line);
+						context.lineTo(point.e(1), point.e(2));
+//context.stroke();
+						last_line = border_line;
+						
+						//now find which border we intersect with
+						border_line = getCanvasIntersectionLine(edge.getLine().reverseLine());
+						//if we dont intersect with the same line then we have to draw from the last border to this border
+						while(border_line != last_line){
+							var point = last_line.intersectionWith(last_line.next);
+							context.lineTo(point.e(1), point.e(2));
+//context.stroke();
+							last_line = last_line.next;
+						}
+					}
+					
+					//get the current line
 					line = edge.getLine();
-					point = last_line.intersectionWith(line);
+					var point = last_line.intersectionWith(line);
 					context.lineTo(point.e(1), point.e(2));
+//context.stroke();
 					last_line = line;
+					quit = quit_next_time;
+					quit_next_time = edge.isLast();
+					edge = edge.getNext();
 				}
 				
-				var line = getCanvasIntersectionLine(edge.getLine());
-				if(edge.getNext().isValid()){
-					line = edge.getNext().getLine();
-				}
-				point = edge.getLine().intersectionWith(line);
-				context.lineTo(point.e(1), point.e(2));
 				context.stroke();
 			}
 		}

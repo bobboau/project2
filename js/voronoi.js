@@ -5,7 +5,6 @@
  */ 
 
 function Voronoi(_points, _sorted){
-	
 	/**********************\
 	|* Private Properties *|
 	\**********************/
@@ -77,6 +76,8 @@ function Voronoi(_points, _sorted){
 			this.next = _next;
 			this.prev = _prev;
 			this.neighbor_edge = _neighbor_edge;
+			this.prev_intersects = false;
+			this.next_intersects = false
 			return this;
 		}
 		
@@ -98,7 +99,7 @@ function Voronoi(_points, _sorted){
 				return new EdgeIterator(edge.prev);
 			};
 			this.isLast = function(){
-				return edge == null || edge.next == null || edge.next == first_edge;
+				return edge == null || edge.next == first_edge;
 			};
 			this.isFirst = function(){
 				return edge == first_edge;
@@ -112,6 +113,13 @@ function Voronoi(_points, _sorted){
 			this.getParent = function(){
 				return edge.parent_face;
 			};
+			//these tests only work because we are dealing with a convex hull
+			this.nextIntersects = function(){
+				return edge && edge.next_intersects;
+			}
+			this.prevIntersects = function(){
+				return edge && edge.prev_intersects;
+			}
 			//the edge is only for internal consumption, and that will be enforced
 			this.getEdge = function(key){
 				if(key == private_key){
@@ -164,27 +172,42 @@ function Voronoi(_points, _sorted){
 			}
 			
 			var edge = new Edge(line, this, before, after, neighbor_edge);
+						
+			//reroot the list at the new edge
+			first_edge = edge;
+			
+			//make unbounded connections	
+			if(!after && !before){
+				edge.prev = edge;
+				edge.next = edge;
+				edge.next_intersects = false;
+				edge.prev_intersects = false;
+			}
+			else{
+				if(before && !after){
+					before.next.prev = edge;
+					edge.next = before.next;
+					edge.next_intersects = false;
+					before.next.prev_intersects = false;
+				}
+				if(after && !before){
+					after.prev.next = edge;
+					edge.prev = after.prev;
+					edge.prev_intersects = false;
+					after.prev.next_intersects = false;
+				}
+			}
+			
+			//make bounded connections
 			if(before){
-				before.next = edge;
+				before.next = edge
+				edge.prev_intersects = true;
+				before.next_intersects = true;
 			}
 			if(after){
 				after.prev = edge;
-			}
-			
-			
-			//if the first_edge is null is the only situation where a double null from findIntersectRange will result in the line getting added
-			if(first_edge == edge.next){
-				first_edge = edge;
-			}
-			
-			//check to see if we just made the list circular
-			var check = edge;
-			while(check && check.next != edge){
-				check = check.next;
-			}
-			//if we did reroot it the list at the new edge
-			if(check){
-				first_edge = edge;
+				edge.next_intersects = true;
+				after.prev_intersects = true;
 			}
 			
 			//chicken or egg
@@ -208,7 +231,6 @@ function Voronoi(_points, _sorted){
 					break;
 				}
 			}
-			
 			return new EdgeIterator(edge);
 		}
 		
@@ -232,31 +254,38 @@ function Voronoi(_points, _sorted){
 		 *@return object -- {start:EdgeIterator,end:EdgeIterator} start and end of the intersection
 		 */
 		this.findIntersectRange = function (line){
-			var cur_edge = first_edge;
-			var start_intersect = null;
-			var end_intersect = null;
+			var cur_edge = this.getFirstEdge();
+			var start_intersect = new EdgeIterator(null);
+			var end_intersect = new EdgeIterator(null);
+			if(!cur_edge.isValid()){
+				return {start: start_intersect, end: end_intersect};
+			}
+			
 			//go over every edge
-			while(cur_edge){
+			var quit = false;
+			var quit_next = cur_edge.isLast();
+			
+			while(!quit){
 				//see how far back an intersection could be
 				var last_intersect = null
-				if(cur_edge.prev){
-					last_intersect = cur_edge.line.intersectionDistanceWith(cur_edge.prev.line);
+				if(cur_edge.prevIntersects()){
+					last_intersect = cur_edge.getLine().intersectionDistanceWith(cur_edge.getPrev().getLine());
 				}
 				
 				//see how far forward an intersection could be
 				var next_intersect = null
-				if(cur_edge.next){
-					next_intersect = cur_edge.line.intersectionDistanceWith(cur_edge.next.line);
+				if(cur_edge.nextIntersects()){
+					next_intersect = cur_edge.getLine().intersectionDistanceWith(cur_edge.getNext().getLine());
 				}
 				
 				//see where the intersection is
-				var this_intersect = cur_edge.line.intersectionDistanceWith(line);
+				var this_intersect = cur_edge.getLine().intersectionDistanceWith(line);
 				
 				//if the intersection is between the intersection with the previous edge and the next, then it did indeed hit this edge
-				if((!last_intersect || last_intersect < this_intersect) && (!next_intersect || this_intersect < next_intersect)){
+				if((last_intersect === null || last_intersect < this_intersect) && (next_intersect === null || this_intersect < next_intersect)){
 					//we have an intersection, we need to figure out if it is coming or going
 					//because we have clockwise winding if the test line is to the right, then it is entering, otherwise it's leaving
-					if(cur_edge.line.direction.cross(line.direction).e(3) < 0){
+					if(cur_edge.getLine().direction.cross(line.direction).e(3) < 0){
 						//it is the end intersection of the test line (clockwise winding order)
 						end_intersect = cur_edge;
 					}else{
@@ -264,12 +293,12 @@ function Voronoi(_points, _sorted){
 					}
 				}
 				
-				cur_edge = cur_edge.next
-				if(cur_edge == first_edge){
-					break;
-				}
+				quit = quit_next;
+				quit_next = cur_edge.isLast();
+				cur_edge = cur_edge.getNext();
 			}
-			return {start: new EdgeIterator(start_intersect), end: new EdgeIterator(end_intersect)}
+			
+			return {start: start_intersect, end: end_intersect};
 		}
 		
 		return this;
@@ -282,6 +311,7 @@ function Voronoi(_points, _sorted){
 	 *set up the more complex portions of this data structure
 	 *this is the highest level of the voronoi diagram algorithm
 	 */
+var that = this;
 	function init(){
 	
 		//make sure we no longer have a reference to something outside our scope
@@ -355,10 +385,8 @@ function Voronoi(_points, _sorted){
 		var nextLeft = Util.makeLoopIterator(left_hull.length, 1);
 		var nextRight = Util.makeLoopIterator(right_hull.length, -1);
 		
-		var left = top.left;
-		var right = top.right;
-		var left_face = left_half.getFace(left_hull[left]);
-		var right_face = right_half.getFace(right_hull[right]);
+		var left_face = left_half.getFace(left_hull[top.left]);
+		var right_face = right_half.getFace(right_hull[top.right]);
 		
 		var left_end = left_half.getFace(left_hull[bot.left]);
 		var right_end = right_half.getFace(right_hull[bot.right]);
@@ -376,14 +404,15 @@ function Voronoi(_points, _sorted){
 			left_face.insertEdge(bisector.reverseLine(), right_face, left_intersections.start, left_intersections.end, null, right_intersections.end, right_intersections.start)
 			
 			//if left intersection higher, incement with left, otherwise right
-			if(right_intersections.pnt === null || (left_intersections.pnt !== null && left_intersections.pnt.e(2) > right_intersections.pnt.e(2))){
+			if(right_intersections.end_pnt === null || (left_intersections.end_pnt !== null && left_intersections.end_pnt.e(2) > right_intersections.end_pnt.e(2))){
 				left_face = left_intersections.end.getNeighborFace()
-				last_intersect = left_intersections.pnt;
+				last_intersect = left_intersections.end_pnt;
 			}else{
 				right_face = right_intersections.end.getNeighborFace();
-				last_intersect = right_intersections.pnt;
+				last_intersect = right_intersections.end_pnt;
 			}
 		}
+
 		var dir = right_face.getGeneratingPoint().subtract(left_face.getGeneratingPoint()).cross($V([0,0,1])).multiply(-1).toUnitVector();
 		var bisector = $L(last_intersect, dir);
 
@@ -392,6 +421,7 @@ function Voronoi(_points, _sorted){
 		
 		//insert the bisecor into the face pair
 		left_face.insertEdge(bisector.reverseLine(), right_face, left_intersections.start, left_intersections.end, null, right_intersections.end, right_intersections.start)
+
 	}
 	
 	/**
@@ -543,9 +573,13 @@ function Voronoi(_points, _sorted){
 	 */
 	function getIntersectionsFromFace(face, bisector){
 		var intersection_range = face.findIntersectRange(bisector);
-		intersection_range.pnt = null;
+		intersection_range.start_pnt = null;
+		intersection_range.end_pnt = null;
 		if(intersection_range.end.isValid()){
-			intersection_range.pnt = bisector.intersectionWith(intersection_range.end.getLine());
+			intersection_range.end_pnt = bisector.intersectionWith(intersection_range.end.getLine());
+		}
+		if(intersection_range.start.isValid()){
+			intersection_range.start_pnt = bisector.intersectionWith(intersection_range.start.getLine());
 		}
 		return intersection_range;
 	}
