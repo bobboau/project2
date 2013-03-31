@@ -296,6 +296,7 @@ var UI = (function(){
 		var y = event.pageY - offset.top;
 		Scene.addPoint(x, canvas.width-y);
 		updateDisplay();
+		calculate(); /* when we add a point by click, it should update the diagram */
 	}
 	
 	/**
