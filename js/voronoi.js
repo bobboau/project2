@@ -117,17 +117,8 @@ function Voronoi(_points, _sorted){
 			this.isLast = function(){
 				return edge == null || edge.next == first_edge;
 			};
-			this.isFirst = function(){
-				return edge == first_edge;
-			};
-			this.getNeighborEdge = function(){
-				return new EdgeIterator(edge.neighbor_edge);
-			};
 			this.getNeighborFace = function(){
 				return edge.neighbor_edge.parent_face;
-			};
-			this.getParent = function(){
-				return edge.parent_face;
 			};
 			//these tests only work because we are dealing with a convex hull
 			this.nextIntersects = function(){

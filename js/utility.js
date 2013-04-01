@@ -6,17 +6,9 @@ Util = {
 		}
 		return ret;
 	},
-	
-	copyLineArray : function(lines){
-		var ret = [];
-		for(var i = 0; i<lines.length; i++){
-			ret.push(lines[i].dup());
-		}
-		return ret;
-	},
-	
+		
 	/**
-	 *given an array of 'something' find the 'thing' that is the 'most' (could be most negitive, or most close to 0, you define what most means with the cmp function)
+	 *given an array of 'something' find the 'thing' that is the 'most' (could be most negative, or most close to 0, you define what most means with the cmp function)
 	 *@param [???] things
 	 *@param function(???, ???) cmp -- comparison function, returns true when a is 'more' than b (more can be 'more small')
 	 *@return index of the thing that was deemed to be the 'most'
