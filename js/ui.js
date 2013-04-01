@@ -239,7 +239,7 @@ var UI = (function(){
 				
 				//fill with a random color
 				var face_point = face.getGeneratingPoint();
-				var color = Math.abs(hash(face_point.elements)%0xffffff).toString(16);
+				var color = Math.abs(~~hash(face_point.elements)%0xffffff).toString(16);
 				while(color.length < 6){
 						color = '0'+color;
 				}
