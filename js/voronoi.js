@@ -319,11 +319,9 @@ function Voronoi(_points, _history, _sorted){
 			//recursive construction
 			var split = ~~(_points.length/2);
 			var left_half = new Voronoi(_points.slice(0,split), _history, true);
+			_history.push(left_half)
 			var right_half = new Voronoi(_points.slice(split), _history, true);
-
-//			_history.push({left: jQuery.extend(true, {}, left_half), right: jQuery.extend(true, {}, right_half)})
-			
-			_history.push({left: left_half, right: right_half})
+			_history.push(right_half)
 			
 			var bot = hullFindCap(left_half, right_half, false);
 			var top = hullFindCap(left_half, right_half, true);

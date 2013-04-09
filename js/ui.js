@@ -283,7 +283,6 @@ var UI = (function(){
 	 */
 	function calculate(){
     var i;
-    var halves;
     var history;
     
 		Scene.calculate();
@@ -293,16 +292,12 @@ var UI = (function(){
     history.reverse(); // so we can use pop() in the correct order
 
     // handle oldest entry in history first so we can clear canvas
-    halves = history.pop();
-    updateDisplay(halves.left, false);  // draw left half & clear canvas
-    updateDisplay(halves.right, true); // draw right half & retain anything on canvas
+    updateDisplay(history.pop(), false);  // draw left half & clear canvas
     
     for (i=1; i<=history.length; i++){
       setTimeout(
         function(){
-          halves = history.pop();
-          updateDisplay(halves.left, true);  // draw left half & retain anything on canvas
-          updateDisplay(halves.right, true); // draw right half & retain anything on canvas
+          updateDisplay(history.pop(), true);  // draw left half & clear canvas
         }, 1000*i);
      }
     // final display after history is shown & clear canvas when drawing
