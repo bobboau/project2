@@ -4,7 +4,7 @@
  *@param bool sorted -- is the above array of points already sorted, default will be equivelent to false
  */ 
 
-function Voronoi(_points, _sorted){
+function Voronoi(_points, _history, _sorted){
 	/**********************\
 	|* Private Properties *|
 	\**********************/
@@ -318,8 +318,12 @@ function Voronoi(_points, _sorted){
 		if(_points.length > 2){
 			//recursive construction
 			var split = ~~(_points.length/2);
-			var left_half = new Voronoi(_points.slice(0,split), true);
-			var right_half = new Voronoi(_points.slice(split), true);
+			var left_half = new Voronoi(_points.slice(0,split), _history, true);
+			var right_half = new Voronoi(_points.slice(split), _history, true);
+
+//			_history.push({left: jQuery.extend(true, {}, left_half), right: jQuery.extend(true, {}, right_half)})
+			
+			_history.push({left: left_half, right: right_half})
 			
 			var bot = hullFindCap(left_half, right_half, false);
 			var top = hullFindCap(left_half, right_half, true);

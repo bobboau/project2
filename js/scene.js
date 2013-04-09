@@ -18,6 +18,12 @@
 	 *@var Voronoi
 	 */
 	var diagram = null;
+
+	/**
+	 *the history of recursively computed Voronoi diagrams
+	 *@var [Vector]
+	 */
+	var diagram_history = [];
 	
 	/*****************************\
 	|* private utility functions *|
@@ -47,6 +53,7 @@
 	function reset(){
 		points = [];
 		diagram = null;
+		diagram_history = [];
 	}
 	
 	/**
@@ -97,13 +104,18 @@
 	function getDiagram(){
 		return diagram;
 	}
+
+	function getDiagramHistory(){
+		return diagram_history;
+	}
+
 	/**
 	 *does the calculation
 	 *entry point for what our grade will be based on
 	 */
 	function calculate(){
 		//magic
-		diagram = new Voronoi(points);
+		diagram = new Voronoi(points, diagram_history);
 	}
 	
 	return {
@@ -111,6 +123,7 @@
 		addPoint:addPoint,
 		getPoints:getPoints,
 		getDiagram:getDiagram,
+		getDiagramHistory:getDiagramHistory,
 		calculate:calculate,
 		updatePoint:updatePoint
 	};
