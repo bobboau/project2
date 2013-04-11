@@ -142,12 +142,12 @@ var UI = (function(){
 	/**
 	 *look at the scene and make the display look like it
 	 */
-	function updateDisplay(){
+	function updateDisplay(voronoi, retain_canvas){
 		
 		//clear what was ever there before
-		context.clearRect(0, 0, canvas.width, canvas.height);
+		if (!retain_canvas)
+		  context.clearRect(0, 0, canvas.width, canvas.height);
 		
-		var voronoi = Scene.getDiagram();
 		if(voronoi){
 			//draw the convex hull
 			var voronoi_hull = voronoi.getConvexHullPoints();
@@ -275,15 +275,33 @@ var UI = (function(){
 	 */
 	function clear(){
 		Scene.reset();
-		updateDisplay();
+		updateDisplay(Scene.getDiagram());
 	}
 	
 	/**
 	 *does the computation, this is where our moneymaker gets called from
 	 */
 	function calculate(){
+    var i;
+    var history;
+    
 		Scene.calculate();
-		updateDisplay();
+		
+		history = Scene.getDiagramHistory();
+
+    history.reverse(); // so we can use pop() in the correct order
+
+    // handle oldest entry in history first so we can clear canvas
+    updateDisplay(history.pop(), false);  // draw left half & clear canvas
+    
+    for (i=1; i<=history.length; i++){
+      setTimeout(
+        function(){
+          updateDisplay(history.pop(), true);  // draw left half & clear canvas
+        }, 1000*i);
+     }
+    // final display after history is shown & clear canvas when drawing
+    setTimeout(function() { updateDisplay(Scene.getDiagram(), false); }, 1000*i);
 	}
 	
 	/**
@@ -295,7 +313,7 @@ var UI = (function(){
 		var x = event.pageX - offset.left;
 		var y = event.pageY - offset.top;
 		Scene.addPoint(x, canvas.width-y);
-		updateDisplay();
+		updateDisplay(Scene.getDiagram());
 		calculate(); /* when we add a point by click, it should update the diagram */
 	}
 	
@@ -315,7 +333,7 @@ var UI = (function(){
 			var x = event.pageX - offset.left;
 			var y = event.pageY - offset.top;
 			Scene.updatePoint(x, canvas.width-y);
-			updateDisplay()
+			updateDisplay(Scene.getDiagram())
 		}
 	}
 	
@@ -330,7 +348,7 @@ var UI = (function(){
 				Scene.addPoint(point[0], point[1]);
 			}
 		);
-		updateDisplay();
+		updateDisplay(Scene.getDiagram());
 	}
 	
 	/**
@@ -359,7 +377,7 @@ var UI = (function(){
 				(Math.random()*0.9+0.05)*canvas.height
 			);
 		}
-		updateDisplay();
+		updateDisplay(Scene.getDiagram());
 	}
 	
 	/********************\
