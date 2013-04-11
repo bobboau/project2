@@ -66,6 +66,7 @@ var UI = (function(){
 			$('#export_button').click(exportPoints);
 			$('#display').click(addPoint);
 			$('#display').mousemove(displayPoint);
+			$('#animate_checkbox').change(calculate);
 			
 			borders = {
 				left:$L( $V([0,0,0]), $V([0,1,0])),
@@ -289,19 +290,24 @@ var UI = (function(){
 		
 		history = Scene.getDiagramHistory();
 
-    history.reverse(); // so we can use pop() in the correct order
+		if($('#animate_checkbox')[0].checked){
+			history.reverse(); // so we can use pop() in the correct order
 
-    // handle oldest entry in history first so we can clear canvas
-    updateDisplay(history.pop(), false);  // draw left half & clear canvas
-    
-    for (i=1; i<=history.length; i++){
-      setTimeout(
-        function(){
-          updateDisplay(history.pop(), true);  // draw left half & clear canvas
-        }, 1000*i);
-     }
-    // final display after history is shown & clear canvas when drawing
-    setTimeout(function() { updateDisplay(Scene.getDiagram(), false); }, 1000*i);
+			// handle oldest entry in history first so we can clear canvas
+			updateDisplay(history.pop(), false);  // draw left half & clear canvas
+		
+			for (i=1; i<=history.length; i++){
+			  setTimeout(
+				function(){
+				  updateDisplay(history.pop(), true);  // draw left half & clear canvas
+				}, 1000*i);
+			 }
+			// final display after history is shown & clear canvas when drawing
+			setTimeout(function() { updateDisplay(Scene.getDiagram(), false); }, 1000*i);
+		}
+		else{
+			updateDisplay(Scene.getDiagram(), false);
+		}
 	}
 	
 	/**
