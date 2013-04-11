@@ -1,5 +1,10 @@
 /**
  *class that describes a voronoi diagram
+ *the algorithm implemented in this file is heavily influenced by, though not a faithful representation of 
+ *the algorithm described in 
+ *"Closest-point problems", Proc. 16th Annu. IEEE Sympos. Foind. Comput. Sci. (1975), 151-162. by Michael Ian Shamos and Dan Hoey
+ *also influencial was the description of the above algorithm presented here:
+ * http://www.personal.kent.edu/~rmuhamma/Compgeometry/MyCG/Voronoi/DivConqVor/divConqVor.htm
  *@param [Vector] _points
  *@param bool sorted -- is the above array of points already sorted, default will be equivelent to false
  */ 
