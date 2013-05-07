@@ -12,6 +12,7 @@
 	 *@var [Vector]
 	 */
 	var points = [];
+	var hullalg = document.getElementById("convex_hull_button").value;
 	
 	/**
 	 *the computed Voronoi diagram (or null if one hasn't been calculated yet)

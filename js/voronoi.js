@@ -328,7 +328,10 @@ function Voronoi(_points, _history, _sorted){
 			var right_half = new Voronoi(_points.slice(split), _history, true);
 			_history.push(right_half)
 			
+			//get bottommost segment from convex hull of left_half union right_half
 			var bot = hullFindCap(left_half, right_half, false);
+
+			//get topmost segment from convex hull of left_half union right_half
 			var top = hullFindCap(left_half, right_half, true);
 			
 			//start the merge
@@ -426,47 +429,66 @@ function Voronoi(_points, _history, _sorted){
 	}
 	
 	/**
-	 *given two Vorinoi find the points on the convex hull of each that represents the top/bottom segments of the hull of the union of them
+	 *given two Vorinoi find the points on the convex hull of each that represents the
+	 *	top/bottom segments of the hull of the union of them
+	 *
 	 *@param Voronoi left_voronoi
 	 *@param Voronoi right_voronoi
 	 *@param bool do_top -- if true we are looking for the top, otherwise the bottom
 	 *@return object -- {left:number,right:number} number are index into the hull of the respective objects
 	 */
 	function hullFindCap(left_voronoi, right_voronoi, do_top){
+		console.log(do_top);
 		var left_hull = left_voronoi.getConvexHullPoints();
 		var right_hull = right_voronoi.getConvexHullPoints();
-		
+		var lo = [];
+		for (var i = 0; i<left_hull.length; i++) {
+			lo.push(left_hull[i].elements);
+		};
+		var ro = [];
+		for (var i = 0; i<right_hull.length; i++) {
+			ro.push(right_hull[i].elements);
+		};
+		console.log([lo,ro]);
 		//get the starting points
 		var extrema = hullFindCapExtrema(left_hull, right_hull);
+		console.log(["extrema:", extrema]);
 		var left = extrema.left;
 		var right = extrema.right;
-		
+		console.log([left_hull[left].elements,right_hull[right].elements]);
 		//get the iterators
 		var next = hullFindCapIterators(left_hull, right_hull, do_top);
-		
+		console.log(["next:", next]);
 		//evaluation functions
 		var isTangentTo = hullFindCapEvaluation(left_hull, right_hull, do_top);
-		
+		console.log(["isTangentTo:", isTangentTo]);
 		//the actual line made by these points
+		console.log([left_hull[left], right_hull[right]]);
 		var segment = Line.createFromSegment(left_hull[left], right_hull[right]);
-		
+		console.log(["segment:", segment]);
+
 		//anything changed last round
-		while(!isTangentTo.left(segment, next.left(left)) || !isTangentTo.right(segment, next.right(right))){
+		while(!isTangentTo.left(segment, next.left(left))
+				|| !isTangentTo.right(segment, next.right(right))){
+			
 			while(!isTangentTo.left(segment, next.left(left))){
+				console.log(["left:",left_hull[left].elements]);
 				left = next.left(left);
 				segment = Line.createFromSegment(left_hull[left], right_hull[right]);
 			}
 			while(!isTangentTo.right(segment, next.right(right))){
+				console.log(["right:",right_hull[right].elements]);
 				right = next.right(right);
 				segment = Line.createFromSegment(left_hull[left], right_hull[right]);
 			}
 		}
-		
+		console.log([left_hull[left].elements,right_hull[right].elements]);
+		console.log("----");
 		return {left:left,right:right};
 	}
 	
 	/**
-	 *given to hulls and caps on the top and bottom of the gap construct this diagram's hull
+	 *given two hulls and caps on the top and bottom of the gap construct this diagram's hull
 	 *the right_hull is completely to the right of left_hull
 	 *@param Voronoi right_hull -- array of indexes to points on the boundry of a convex hull in clockwise winding order
 	 *@param Voronoi left_hull -- array of indexes to points on the boundry of a convex hull in clockwise winding order
@@ -481,7 +503,7 @@ function Voronoi(_points, _history, _sorted){
 		for(var i = 0; i<right_hull.length; i++){
 			right_hull[i] += left_half.getFaceCount();
 		}
-			
+		
 		//copy the points from the left hull
 		for( var i = 0; i<left_hull.length; i++){
 			var idx = (i+bot.left)%left_hull.length;

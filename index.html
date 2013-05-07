@@ -3,68 +3,143 @@
   <head>
     <title>Divide-and-Conquer Voronoi Diagram</title>
     <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.min.css">
+    <link href="bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/jstyle.css">
+
+    <script type="text/javascript" src="MathJax/MathJax.js?config=default"></script>
+
+
+
+	<link rel="stylesheet" href="css/style.css">
+	<script type="text/javascript">
+	function chb(opid, val){
+		var b = document.getElementById("convex_hull_button");
+		var op = document.getElementById(opid);
+		b.innerHTML = op.innerHTML + "<span class=\"caret\"></span>";
+		b.value = val;
+	}
+
+	function switchLive(){
+		var live = document.getElementById("live_insert_checkbox");
+		if(live.parentNode.className.indexOf("default")!=-1){
+			live.parentNode.className = "btn btn-inverse";
+			live.checked = true;
+		}
+		else{
+			live.parentNode.className = "btn btn-default";
+			live.checked = false;
+		}
+	}
+	</script>
+ </head>
+
+
+  <body>
+  	<div class="navbar navbar-inverse navbar-fixed-top">
+  		<div style="position:absolute; right:60px;top:15px;color:white;">
+			<span id="coords_x">0</span>
+			<span id="coords_y">0</span>
+		</div>
+		<div class="navbar-inner">
+			<div class="container">
+				<button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="brand" href="#">Divide and Conquer Voronoi Diagram</a>
+				<div class="nav-collapse collapse">
+					<ul class="nav">
+						<li><a href="#">Home</a></li>
+						<li><a href="#about">About</a></li>
+						<li><a href="#contact">Contact</a></li>
+					</ul>
+				</div><!--/.nav-collapse -->
+			</div>
+		</div>
+    </div>
+  	
+	<div class="container">
+		<div class="well well-small">
+			To be implemented:
+			<ul>
+				<li>Graham Scan O(n log n)</li>
+				<li>Chan's algorithm   O(n log k)</li>
+			</ul>
+		</div>
+		
+		<div class="alert alert-info">
+			<button class="close" data-dismiss="alert" type="button">×</button>
+			<strong>Click</strong> to add points!
+		</div>
+
+	
+		<canvas id="display" width="600" height="600" style="margin-left:auto; margin-right:auto; display: block;"/></canvas>
+	
+		<div class="row">
+			<div class="span12">
+				<div class="btn-toolbar" style="text-align:center;">
+					<input id="calculate_button" class="btn btn-primary" type="button" value="Calculate"></input>
+					<input id="random_button" class="btn" type="button" value="Random"></input>
+					<input id="clear_button" class="btn" type="button" value="Clear"></input>
+					<div class="btn-group">
+						<button id="convex_hull_button" class="btn btn-success dropdown-toggle" data-toggle="dropdown" value="dc" >
+							Divide and Conquer <script type="math/tex">O(n \log n)</script>
+							<span class="caret"></span>
+						</button>
+						<ul class="dropdown-menu">
+							<li><a id="op1" href="#" onClick="chb('op1','graham');">Graham Scan <script type="math/tex">O(n \log n)</script></a></li>
+							<li><a id="op2" href="#" onClick="chb('op2','dc');">Divide and Conquer <script type="math/tex">O(n \log n)</script></a></li>
+							<li><a id="op3" href="#" onClick="chb('op3','chan');">Chan's Algorithm <script type="math/tex">O(n \log k)</script></a></li>
+						</ul>
+					</div>
+					<div class="btn-group" style="text-align:center;">
+						<button class="btn btn-default" onClick="switchLive();">Live Input<input id="live_insert_checkbox" class="checkbox" type="checkbox" style="margin:0px;position:absolute;visibility:hidden;"></input></span>
+						<script type="text/javascript">
+							var live = document.getElementById("live_insert_checkbox");
+							if(live.checked){
+								live.parentNode.className = "label label-inverse";
+							}
+						</script>
+						<input id="animate_checkbox" class="checkbox" type="checkbox" style="position:absolute;visibility:hidden;"></input>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			
+		</div>
+
+	</div>
+	<div class="container">
+		<table class="main_layout">
+			<tr>
+				<td colspan="3">
+					Import Points:
+					<textarea id="import_input" rows="4" style="width:400px;"></textarea>
+
+				</td>
+				<td>
+					<input type="button" class="btn" id="import_button" value="Import"></input>
+					<br/>
+					<input type="button" class="btn" id="export_button" value="Export"></input>
+				</td>
+			</tr>
+		</table>
+	</div>
+
+
+
+
+
+	
 	<script src="js/sylvester.js"></script>
 	<script src="js/jquery-1.9.1.min.js"></script>
 	<script src="js/utility.js"></script>
  	<script src="js/ui.js"></script>
 	<script src="js/scene.js"></script>
 	<script src="js/voronoi.js"></script>
-	<link rel="stylesheet" href="css/style.css">
- </head>
-  <body>
-	<div>
-		<h1>
-			Divide and Conquer Voronoi Diagram
-		</h1>
-		<h3>
-			click to add points
-		</h3>
-		<div>
-			<span id="coords_x">0</span>
-			<span id="coords_y">0</span>
-		</div>
-		<table class="main_layout">
-			<tr>
-				<td colspan="3">
-					<canvas id="display" width="500" height="500"></canvas>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<input id="calculate_button" type="button" value="Calculate"></input>
-				</td>
-				<td>
-					<input id="random_button" type="button" value="Random"></input>
-				</td>
-				<td>
-					<input id="clear_button" type="button" value="Clear"></input>
-				</td>
-			</tr>
-			<tr>
-				<td colspan="2">
-					Live Insert:
-					<input id="live_insert_checkbox" type="checkbox"></input>
-				</td>
-				<td colspan="1">
-					Animate:
-					<input id="animate_checkbox" type="checkbox"></input>
-				</td>
-			</tr>
-			<tr>
-				<td colspan="3">
-					Import Points:
-					<textarea id="import_input"></textarea>
-					<input type="button" id="import_button" value="Import"></input>
-				</td>
-			</tr>
-			<tr>
-				<td colspan="3">
-					Export Points:
-					<div id="export_output"></div>
-					<input type="button" id="export_button" value="Export"></input>
-				</td>
-			</tr>
-		</table>
-	</div>
+	<script type="text/javascript" src="bootstrap/js/bootstrap.min.js"></script>
   </body>
 </html>
