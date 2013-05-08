@@ -354,6 +354,7 @@ function Voronoi(_points, _history, _sorted){
 			
 			//build the hull
 			constructHull(left_half, right_half, bot, top, split);
+			
 		}
 		else{
 			//simplest base case
@@ -438,52 +439,54 @@ function Voronoi(_points, _history, _sorted){
 	 *@return object -- {left:number,right:number} number are index into the hull of the respective objects
 	 */
 	function hullFindCap(left_voronoi, right_voronoi, do_top){
-		console.log(do_top);
 		var left_hull = left_voronoi.getConvexHullPoints();
 		var right_hull = right_voronoi.getConvexHullPoints();
-		var lo = [];
-		for (var i = 0; i<left_hull.length; i++) {
-			lo.push(left_hull[i].elements);
-		};
-		var ro = [];
-		for (var i = 0; i<right_hull.length; i++) {
-			ro.push(right_hull[i].elements);
-		};
-		console.log([lo,ro]);
-		//get the starting points
-		var extrema = hullFindCapExtrema(left_hull, right_hull);
-		console.log(["extrema:", extrema]);
-		var left = extrema.left;
-		var right = extrema.right;
-		console.log([left_hull[left].elements,right_hull[right].elements]);
-		//get the iterators
-		var next = hullFindCapIterators(left_hull, right_hull, do_top);
-		console.log(["next:", next]);
-		//evaluation functions
-		var isTangentTo = hullFindCapEvaluation(left_hull, right_hull, do_top);
-		console.log(["isTangentTo:", isTangentTo]);
-		//the actual line made by these points
-		console.log([left_hull[left], right_hull[right]]);
-		var segment = Line.createFromSegment(left_hull[left], right_hull[right]);
-		console.log(["segment:", segment]);
+		
+		var left = 0; var right = 0;
 
-		//anything changed last round
-		while(!isTangentTo.left(segment, next.left(left))
-				|| !isTangentTo.right(segment, next.right(right))){
-			
-			while(!isTangentTo.left(segment, next.left(left))){
-				console.log(["left:",left_hull[left].elements]);
-				left = next.left(left);
-				segment = Line.createFromSegment(left_hull[left], right_hull[right]);
-			}
-			while(!isTangentTo.right(segment, next.right(right))){
-				console.log(["right:",right_hull[right].elements]);
-				right = next.right(right);
-				segment = Line.createFromSegment(left_hull[left], right_hull[right]);
+		var d = direction(left_hull,right_hull,do_top);
+		var next = hullFindCapIterators(left_hull, right_hull, do_top);
+		var maxL = 0; var maxLpos = 0;
+		for (var i = 0; i<left_hull.length; i++) {
+			if(left_hull[i].elements[0] > maxL){
+				maxL = left_hull[i].elements[0];
+				maxLpos = i;
 			}
 		}
-		console.log([left_hull[left].elements,right_hull[right].elements]);
-		console.log("----");
+		var minR = 1000; var minRpos = 0;
+		for (var i = 0; i<right_hull.length; i++) {
+			if(right_hull[i].elements[0] < minR){
+				minR = right_hull[i].elements[0];
+				mirRpos = i;
+			}
+		}
+
+		left = maxLpos;
+		right = minRpos;
+
+		if(do_top){
+			while( d.isAbove(left,right,next,true) ||
+					d.isAbove(left,right,next,false) ){
+				while( d.isAbove(left,right,next,true) ){
+					left = next.left(left);
+				}
+				while( d.isAbove(left,right,next,false) ){
+					right = next.right(right);
+				}
+			}
+		}
+		else{
+			while( d.isBelow(left,right,next,true) ||
+					d.isBelow(left,right,next,false) ){
+				while( d.isBelow(left,right,next,true) ){
+					left = next.left(left);
+				}
+				while( d.isBelow(left,right,next,false) ){
+					right = next.right(right);
+				}
+			}
+		}
+
 		return {left:left,right:right};
 	}
 	
@@ -585,6 +588,45 @@ function Voronoi(_points, _history, _sorted){
 		return {left:isTangentToLeft, right:isTangentToRight};
 	}
 	
+
+	function direction(left_hull, right_hull, do_top){
+		var isAbove = function(l,r,next,isLeft){
+			if( (isLeft ? left_hull : right_hull).length==1 ){
+				return false
+			}
+			var a = left_hull[l];
+			var b = right_hull[r];
+			var x = isLeft ? left_hull[next.left(l)] : right_hull[next.right(r)];
+			return ((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
+					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) > 0;
+		};
+
+		var isBelow = function(l,r,next,isLeft){
+			if( (isLeft ? left_hull : right_hull).length==1 ){
+				return false
+			}
+			var a = left_hull[l];
+			var b = right_hull[r];
+			var x = isLeft ? left_hull[next.left(l)] : right_hull[next.right(r)];
+			return ((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
+					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) <= 0;
+		};
+
+		/*var isAbove = function(a,b,x,isLeft){
+			return (isLeft ? left_hull : right_hull).length==1 || 
+				((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
+					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) <= 0;
+		};*/
+		/*var isBelow = function(a,b,x,isLeft){
+			return (isLeft ? left_hull : right_hull).length==1 ||
+				((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
+					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) > 0
+		};*/
+		return {isAbove:isAbove, isBelow:isBelow};
+	}
+
+
+
 	/*~~~~~*\
 	~ merge ~
 	\*~~~~~*/
