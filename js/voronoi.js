@@ -470,11 +470,15 @@ function Voronoi(_points, _history, _sorted){
 					d.isAbove(left,right,next,false) ){
 
 				while( d.isAbove(left,right,next,true) ){
-					left = next.left(left);
+					//if(!d.isFlat(left,right,next,true)){
+						left = next.left(left);
+					//}
 				}
-				/*while( d.isAbove(left,right,next,false) ){
-					right = next.right(right);
-				}*/
+				while( d.isAbove(left,right,next,false) ){
+					//if(!d.isFlat(left,right,next,false)){
+						right = next.right(right);
+					//}
+				}
 			}
 		}
 		else{
@@ -482,19 +486,15 @@ function Voronoi(_points, _history, _sorted){
 					d.isBelow(left,right,next,false) ){
 
 				while( d.isBelow(left,right,next,true) ){
-					left = next.left(left);
-				}
-				if(!d.isAbove(left,right,next,true)){
-					//colinearity
-					left = next.left(left);
+					//if(!d.isFlat(left,right,next,true)){
+						left = next.left(left);
+					//}
 				}
 				while( d.isBelow(left,right,next,false) ){
-					right = next.right(right);
+					//if(!d.isFlat(left,right,next,false)){
+						right = next.right(right);
+					//}
 				}
-				/*if(!d.isAbove(left,right,next,false)){
-					//colinearity
-					right = next.right(right);
-				}*/
 			}
 		}
 
@@ -625,6 +625,16 @@ function Voronoi(_points, _history, _sorted){
 			return ccw(a,b,x) > 0 ;
 		};
 
+		var isFlat = function(l,r,next,isLeft){
+			if( (isLeft ? left_hull : right_hull).length==1 ){
+				return false
+			}
+			var a = left_hull[l];
+			var b = right_hull[r];
+			var x = isLeft ? left_hull[next.left(l)] : right_hull[next.right(r)];
+			return ccw(a,b,x) == 0 ;
+		};
+
 		var isBelow = function(l,r,next,isLeft){
 			if( (isLeft ? left_hull : right_hull).length==1 ){
 				return false
@@ -635,7 +645,7 @@ function Voronoi(_points, _history, _sorted){
 			return ccw(a,b,x) < 0;
 		};
 
-		return {isAbove:isAbove, isBelow:isBelow};
+		return {isAbove:isAbove, isFlat:isFlat, isBelow:isBelow};
 	}
 
 
