@@ -64,9 +64,9 @@
 	 */
 	function addPoint(x, y){
 		var new_point = $V([x,y,0]);
-		while(!isPointValid(new_point)){
-			new_point = $V([x+Math.random(),y+Math.random(),0]);
-		}
+		//while(!isPointValid(new_point)){
+		//	new_point = $V([x+Math.random(),y+Math.random(),0]);
+		//}
 		points.push(new_point);
 	}
 	
