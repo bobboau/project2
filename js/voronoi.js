@@ -441,7 +441,8 @@ function Voronoi(_points, _history, _sorted){
 	function hullFindCap(left_voronoi, right_voronoi, do_top){
 		var left_hull = left_voronoi.getConvexHullPoints();
 		var right_hull = right_voronoi.getConvexHullPoints();
-		
+		console.log(["left",left_hull]);
+		console.log(["right",right_hull]);
 		var left = 0; var right = 0;
 		var maxL = 0; var maxLpos = 0;
 		for (var i = 0; i<left_hull.length; i++) {
@@ -467,23 +468,33 @@ function Voronoi(_points, _history, _sorted){
 		if(do_top){
 			while( d.isAbove(left,right,next,true) ||
 					d.isAbove(left,right,next,false) ){
+
 				while( d.isAbove(left,right,next,true) ){
 					left = next.left(left);
 				}
-				while( d.isAbove(left,right,next,false) ){
+				/*while( d.isAbove(left,right,next,false) ){
 					right = next.right(right);
-				}
+				}*/
 			}
 		}
 		else{
 			while( d.isBelow(left,right,next,true) ||
 					d.isBelow(left,right,next,false) ){
+
 				while( d.isBelow(left,right,next,true) ){
+					left = next.left(left);
+				}
+				if(!d.isAbove(left,right,next,true)){
+					//colinearity
 					left = next.left(left);
 				}
 				while( d.isBelow(left,right,next,false) ){
 					right = next.right(right);
 				}
+				/*if(!d.isAbove(left,right,next,false)){
+					//colinearity
+					right = next.right(right);
+				}*/
 			}
 		}
 
@@ -494,15 +505,20 @@ function Voronoi(_points, _history, _sorted){
 	/**
 	 *given two hulls and caps on the top and bottom of the gap construct this diagram's hull
 	 *the right_hull is completely to the right of left_hull
-	 *@param Voronoi right_hull -- array of indexes to points on the boundry of a convex hull in clockwise winding order
-	 *@param Voronoi left_hull -- array of indexes to points on the boundry of a convex hull in clockwise winding order
+	 *@param Voronoi right_half -- array of indexes to points on the boundry of a convex hull in clockwise winding order
+	 *@param Voronoi left_half -- array of indexes to points on the boundry of a convex hull in clockwise winding order
 	 *@param object top -- {left:number,right:number} numbers are indexes into the respective hulls hull -- this is the top patch between left and right
 	 *@param object bot -- {left:number,right:number} numbers are indexes into the respective hulls hull -- this is the bottom patch between left and right
 	 */
 	function constructHull(left_half, right_half, bot, top, split){
+		
+
+
 		var left_hull = left_half.getConvexHull();
 		var right_hull = right_half.getConvexHull();
-		
+		//console.log(["left",left_hull]);
+		//console.log(["right",right_hull]);
+
 		//normalize the right set to use the same index space as we are, left should already be
 		for(var i = 0; i<right_hull.length; i++){
 			right_hull[i] += left_half.getFaceCount();
@@ -525,6 +541,9 @@ function Voronoi(_points, _history, _sorted){
 				break;
 			}
 		}
+
+
+
 	}
 	
 	/*--------------------*\
@@ -590,6 +609,11 @@ function Voronoi(_points, _history, _sorted){
 	}
 	
 
+	function ccw(a,b,x){
+		return ((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
+					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0]));
+	}
+
 	function direction(left_hull, right_hull, do_top){
 		var isAbove = function(l,r,next,isLeft){
 			if( (isLeft ? left_hull : right_hull).length==1 ){
@@ -598,8 +622,7 @@ function Voronoi(_points, _history, _sorted){
 			var a = left_hull[l];
 			var b = right_hull[r];
 			var x = isLeft ? left_hull[next.left(l)] : right_hull[next.right(r)];
-			return ((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
-					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) > 0 ;
+			return ccw(a,b,x) > 0 ;
 		};
 
 		var isBelow = function(l,r,next,isLeft){
@@ -609,8 +632,7 @@ function Voronoi(_points, _history, _sorted){
 			var a = left_hull[l];
 			var b = right_hull[r];
 			var x = isLeft ? left_hull[next.left(l)] : right_hull[next.right(r)];
-			return ((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
-					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) < 0;
+			return ccw(a,b,x) < 0;
 		};
 
 		return {isAbove:isAbove, isBelow:isBelow};

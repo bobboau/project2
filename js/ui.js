@@ -194,6 +194,7 @@ var UI = (function(){
 					//if the last edge is across an unbounded segment then we need to use the border instead
 					last_line = getCanvasIntersectionLine(edge.getLine().reverseLine());
 				}
+
 				var point = last_line.intersectionWith(line);
 				context.moveTo(point.e(1), point.e(2));
 
