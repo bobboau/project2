@@ -330,10 +330,10 @@ function Voronoi(_points, _history, _sorted){
 			
 			//get bottommost segment from convex hull of left_half union right_half
 			var bot = hullFindCap(left_half, right_half, false);
-
+			console.log(["bot", bot.left,bot.right]);
 			//get topmost segment from convex hull of left_half union right_half
 			var top = hullFindCap(left_half, right_half, true);
-			
+			console.log(["top", top.left, top.right]);
 			//start the merge
 			
 			//import all of the edges from the two halves
@@ -443,9 +443,6 @@ function Voronoi(_points, _history, _sorted){
 		var right_hull = right_voronoi.getConvexHullPoints();
 		
 		var left = 0; var right = 0;
-
-		var d = direction(left_hull,right_hull,do_top);
-		var next = hullFindCapIterators(left_hull, right_hull, do_top);
 		var maxL = 0; var maxLpos = 0;
 		for (var i = 0; i<left_hull.length; i++) {
 			if(left_hull[i].elements[0] > maxL){
@@ -457,12 +454,15 @@ function Voronoi(_points, _history, _sorted){
 		for (var i = 0; i<right_hull.length; i++) {
 			if(right_hull[i].elements[0] < minR){
 				minR = right_hull[i].elements[0];
-				mirRpos = i;
+				minRpos = i;
 			}
 		}
 
 		left = maxLpos;
 		right = minRpos;
+
+		var d = direction(left_hull,right_hull,do_top);
+		var next = hullFindCapIterators(left_hull, right_hull, do_top);
 
 		if(do_top){
 			while( d.isAbove(left,right,next,true) ||
@@ -488,6 +488,7 @@ function Voronoi(_points, _history, _sorted){
 		}
 
 		return {left:left,right:right};
+		
 	}
 	
 	/**
@@ -598,7 +599,7 @@ function Voronoi(_points, _history, _sorted){
 			var b = right_hull[r];
 			var x = isLeft ? left_hull[next.left(l)] : right_hull[next.right(r)];
 			return ((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
-					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) > 0;
+					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) > 0 ;
 		};
 
 		var isBelow = function(l,r,next,isLeft){
@@ -609,19 +610,9 @@ function Voronoi(_points, _history, _sorted){
 			var b = right_hull[r];
 			var x = isLeft ? left_hull[next.left(l)] : right_hull[next.right(r)];
 			return ((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
-					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) <= 0;
+					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) < 0;
 		};
 
-		/*var isAbove = function(a,b,x,isLeft){
-			return (isLeft ? left_hull : right_hull).length==1 || 
-				((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
-					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) <= 0;
-		};*/
-		/*var isBelow = function(a,b,x,isLeft){
-			return (isLeft ? left_hull : right_hull).length==1 ||
-				((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
-					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0])) > 0
-		};*/
 		return {isAbove:isAbove, isBelow:isBelow};
 	}
 
