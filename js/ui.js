@@ -196,8 +196,12 @@ var UI = (function(){
 				}
 
 				var point = last_line.intersectionWith(line);
-				context.moveTo(point.e(1), point.e(2));
-
+				if(point != null){
+					context.moveTo(point.e(1), point.e(2));
+				}
+				else{
+					//console.log(["null",face]);
+				}
 				var quit = false;
 				var quit_next_time = edge.isLast();
 				last_line = line;
@@ -211,8 +215,12 @@ var UI = (function(){
 						//first draw from the last line to the border edge it intersects
 						border_line = getCanvasIntersectionLine(last_line);
 						var point = last_line.intersectionWith(border_line);
-						context.lineTo(point.e(1), point.e(2));
-
+						if(point != null){
+							context.lineTo(point.e(1), point.e(2));
+						}
+						else{
+							//console.log(["null",face]);
+						}
 						last_line = border_line;
 						
 						//now find which border we intersect with
@@ -229,7 +237,16 @@ var UI = (function(){
 					//get the current line
 					line = edge.getLine();
 					var point = last_line.intersectionWith(line);
-					context.lineTo(point.e(1), point.e(2));
+					//console.log(point);
+					if(point != null){
+						//console.log([point.e(1), point.e(2)])
+						context.lineTo(point.e(1), point.e(2));
+					}
+					else{
+						//console.log(["null",face]);
+					}
+					//console.log([line,last_line]);
+					
 
 					last_line = line;
 					quit = quit_next_time;

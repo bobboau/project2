@@ -315,7 +315,9 @@ function Voronoi(_points, _history, _sorted){
 	
 		//make sure we no longer have a reference to something outside our scope
 		_points = Util.copyPointArray(_points);
-
+		
+		hullalg = document.getElementById("convex_hull_button").value;
+		console.log(hullalg);
 		if(!_sorted){
 			_points.sort(function(a,b){return a.e(1)-b.e(1)});
 		}
@@ -330,10 +332,10 @@ function Voronoi(_points, _history, _sorted){
 			
 			//get bottommost segment from convex hull of left_half union right_half
 			var bot = hullFindCap(left_half, right_half, false);
-			console.log(["bot", bot.left,bot.right]);
+			//console.log(["bot", bot.left,bot.right]);
 			//get topmost segment from convex hull of left_half union right_half
 			var top = hullFindCap(left_half, right_half, true);
-			console.log(["top", top.left, top.right]);
+			//console.log(["top", top.left, top.right]);
 			//start the merge
 			
 			//import all of the edges from the two halves
@@ -353,7 +355,7 @@ function Voronoi(_points, _history, _sorted){
 			merge(left_half, right_half, top, bot);
 			
 			//build the hull
-			constructHull(left_half, right_half, bot, top, split);
+			constructHull(left_half, right_half, bot, top, split, hullalg);
 			
 		}
 		else{
@@ -441,8 +443,8 @@ function Voronoi(_points, _history, _sorted){
 	function hullFindCap(left_voronoi, right_voronoi, do_top){
 		var left_hull = left_voronoi.getConvexHullPoints();
 		var right_hull = right_voronoi.getConvexHullPoints();
-		console.log(["left",left_hull]);
-		console.log(["right",right_hull]);
+		//console.log(["left",left_hull]);
+		//console.log(["right",right_hull]);
 		var left = 0; var right = 0;
 		var maxL = 0; var maxLpos = 0;
 		for (var i = 0; i<left_hull.length; i++) {
@@ -510,40 +512,175 @@ function Voronoi(_points, _history, _sorted){
 	 *@param object top -- {left:number,right:number} numbers are indexes into the respective hulls hull -- this is the top patch between left and right
 	 *@param object bot -- {left:number,right:number} numbers are indexes into the respective hulls hull -- this is the bottom patch between left and right
 	 */
-	function constructHull(left_half, right_half, bot, top, split){
+	function constructHull(left_half, right_half, bot, top, split, alg){
+		//console.log(convex_hull);
+
+		if(alg == "dc"){
 		
-
-
-		var left_hull = left_half.getConvexHull();
-		var right_hull = right_half.getConvexHull();
-		//console.log(["left",left_hull]);
-		//console.log(["right",right_hull]);
-
-		//normalize the right set to use the same index space as we are, left should already be
-		for(var i = 0; i<right_hull.length; i++){
-			right_hull[i] += left_half.getFaceCount();
-		}
-		
-		//copy the points from the left hull
-		for( var i = 0; i<left_hull.length; i++){
-			var idx = (i+bot.left)%left_hull.length;
-			convex_hull.push(left_hull[idx]);
-			if(idx == top.left){
-				break;
+			var left_hull = left_half.getConvexHull();
+			var right_hull = right_half.getConvexHull();
+			
+			
+			//console.log([left_hull,right_hull]);
+			//normalize the right set to use the same index space as we are, left should already be
+			for(var i = 0; i<right_hull.length; i++){
+				right_hull[i] += left_half.getFaceCount();
 			}
-		}
-		
-		//copy the points from the right hull
-		for( var i = 0; i<right_hull.length; i++){
-			var idx = (i+top.right)%right_hull.length;
-			convex_hull.push(right_hull[idx]);
-			if(idx == bot.right){
-				break;
+			
+			//copy the points from the left hull
+			for( var i = 0; i<left_hull.length; i++){
+				var idx = (i+bot.left)%left_hull.length;
+				convex_hull.push(left_hull[idx]);
+				if(idx == top.left){
+					break;
+				}
 			}
+			
+			//copy the points from the right hull
+			for( var i = 0; i<right_hull.length; i++){
+				var idx = (i+top.right)%right_hull.length;
+				convex_hull.push(right_hull[idx]);
+				if(idx == bot.right){
+					break;
+				}
+			}
+
+	
+		}	
+		else if(alg == "graham"){
+
+			var left_hull = left_half.getConvexHull();
+			var right_hull = right_half.getConvexHull();
+			var left_hullpvs = left_half.getConvexHullPoints();
+			var right_hullpvs = right_half.getConvexHullPoints();
+
+			//whole list of points as positions in some array
+			/*var ps = right_hull;
+			for(var i = 0; i<ps.length; i++){
+				ps[i] += left_half.getFaceCount();
+			}
+			ps = left_hull.concat(ps);
+
+			var n = ps.length;
+			if(n <= 3 ){
+					for( var i = 0; i<n; i++){
+						convex_hull.push(ps[i]);
+					}
+					return;
+			}
+
+			//whole list of actual points
+			var pvs = right_hullpvs;
+			pvs = left_hullpvs.concat(pvs);
+			*/
+			var n = _points.length;
+			var pvs = _points;
+			var miny = 0;
+			for (var i = 1; i < n; i++) {
+				if (pvs[i].elements[1] == pvs[miny].elements[1]) {
+					if (pvs[i].elements[0]<pvs[miny].elements[0])
+						miny = i;
+				}
+				else if (pvs[i].elements[1]<pvs[miny].elements[1]){
+					miny = i;
+				}
+			}
+			console.log(["miny",miny,_points[miny]]);
+			//Sort by polar angle
+			var sangl = [];
+			var ang = 0.0;
+			var dist = 0.0;
+			for (var i = 0; i < n; i++) {
+				if (i==miny) continue;
+				ang = getAngle(pvs[miny].elements , pvs[i].elements);
+				if(ang < 0 ){
+					ang = (ang + 2*Math.PI)%(2*Math.PI);
+				}
+				dist = getDistance(pvs[miny].elements , pvs[i].elements);
+				sangl.push([i,ang,dist]);
+			}
+			sangl.sort(function(p1,p2) { return compareAngDist(p1,p2); });
+
+			console.log(["sangl",sangl]);
+
+			//We want points[0] to be a sentinel point that will stop the loop.
+			//var stk = new Array(n+1);
+			var stk = new Array(2);
+			stk[0] = sangl[sangl.length-1][0];
+			stk[1] = miny;
+
+			for (var i = 0; i < sangl.length; i++) {
+				stk.push(sangl[i][0]);
+			};
+			//console.log(["stk",stk]);
+
+			//M will denote the number of points on the convex hull.
+			var M = 2;
+
+			for (i = 3; i<=n; i++) {
+
+				//console.log([pvs[stk[M-1]], pvs[stk[M]], pvs[stk[i]]]);
+				//console.log(["stk",stk[i], i, stk.length]);
+				while(ccw(pvs[stk[M-1]], pvs[stk[M]], pvs[stk[i]]) < 0){
+					if(M>1){
+						M--;
+					}
+					else if(i==n){
+						break;
+					}
+				}
+				M++;
+				var elem = stk[i];
+				stk[i] = stk[M];
+				stk[M] = elem;
+			}
+
+			convex_hull = new Array(M);
+			for (i = 0; i<M; i++) {
+				convex_hull[i]=stk[i+1];
+			}
+
+			var nv = [0,0];
+			for (var i = 0; i < convex_hull.length; i++) {
+				nv[0] += pvs[convex_hull[i]].elements[0];
+				nv[1] += pvs[convex_hull[i]].elements[1];
+			}
+			console.log(["nv",nv]);
+			nv[0] /= convex_hull.length;
+			nv[1] /= convex_hull.length;
+
+			var cangl = [];
+			var cang = 0.0;
+			var cdist = 0.0;
+			console.log(["nv",nv]);
+			for (var i = 0; i < convex_hull.length; i++) {
+				console.log(pvs[convex_hull[i]].elements);
+				cang = getAngle(nv , pvs[convex_hull[i]].elements);
+				if(cang < 0 ){
+					cang = (cang + Math.PI);
+				}
+				console.log(cang);
+				cdist = getDistance(nv , pvs[convex_hull[i]].elements);
+				cangl.push([convex_hull[i],cang,cdist]);
+			}
+			cangl.sort(function(p1,p2) { return compareAngDist(p1,p2); });
+			convex_hull = [];
+			for (var i = 0; i < cangl.length; i++) {
+				convex_hull.push(cangl[i][0]);
+			}
+
 		}
+		else if(alg == "chan"){
+			return;
+		}
+		console.log(["ch",convex_hull]);
+		var chp = [];
+		for (var i = 0; i < convex_hull.length; i++) {
+			chp.push(_points[convex_hull[i]]);
+		}
+		console.log(["chp",chp]);
 
-
-
+		return;
 	}
 	
 	/*--------------------*\
@@ -612,6 +749,34 @@ function Voronoi(_points, _history, _sorted){
 	function ccw(a,b,x){
 		return ((b.elements[0] - a.elements[0])*(x.elements[1] - a.elements[1])
 					- (b.elements[1] - a.elements[1])*(x.elements[0] - a.elements[0]));
+	}
+
+	function getAngle(o, a) {
+		return Math.atan((a[1]-o[1]) / (a[0] - o[0]));
+	}
+
+	function getDistance(a, b) {
+		return ((b[0]-a[0])*(b[0]-a[0])+(b[1]-a[1])*(b[1]-a[1]));
+	}
+
+	function compareAngDist(p1,p2){
+		if(p1[1] < p2[1]){
+			return -1;
+		}
+		else if(p1[1] > p2[1]){
+			return 1;
+		}
+		else{
+			if(p1[2] < p2[2]){
+				return -1;
+			}
+			else if (p1[2] > p2[2]){
+				return 1;
+			}
+			else{
+				return 0;
+			}
+		}
 	}
 
 	function direction(left_hull, right_hull, do_top){
